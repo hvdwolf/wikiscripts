@@ -32,7 +32,7 @@ GZIPPED_SQL = "YES" # YES or NO
 Table_Fields = "(Title text, latitude float, longitude float, language text, poitype text, region text)"
 
 CREATE_SQLITE = "YES" # YES or NO
-SQLITE_DATABASE_PATH = '/cygdrive/d/LocalData_387640/Datadir/Navigatie/wikimedia-downloads/sqlite/'  # This needs to be a full qualified path
+SQLITE_DATABASE_PATH = '/cygdrive/d/Datadir/Navigatie/wikimedia-downloads/sqlite/'  # This needs to be a full qualified path
 
 		
 		
