@@ -10,7 +10,7 @@ languages="ar ca cs da de el en eo es et eu fa fi fr gl he hi hr hu it ja ko lt 
 mkdir -p ../output
 for language in $languages
 do
-# we can't nest the combines sqlite command, so "un"nest everything
+# we can't nest the combined sqlite command nicely, so "un"nest everything and let it start at first postion on the line
 printf " Exporting wikivoyagedump to csv for language $language\n\n"
 sqlite3 ../sqlite/${language}wikipedia.db <<!
 .headers on
@@ -18,5 +18,9 @@ sqlite3 ../sqlite/${language}wikipedia.db <<!
 .output ../output/${language}wikivoyage.csv
 select * from ${language}_wikivoyage;
 !
+# do some reformating like the &lt; to < and &gt; to >
+sed -e 's+&amp;+&+g' -e 's+&gt;+>+g' -e 's+&lt;+<+g' -e 's+nbsp;+ +g' ${language}wikivoyage.csv > ${language}wikivoyage2.csv
+mv ${language}wikivoyage2.csv ${language}wikivoyage.csv
+
 printf "\n\n"
 done
