@@ -43,10 +43,7 @@ Table_Fields = "(TITLE TEXT, LATITUDE FLOAT, LONGITUDE FLOAT, REMARKS TEXT, CONT
 # The csv output can contain (many) duplicates. We don't want that. In our database we can easily remove duplicates and then write 
 # a csv from the database. 
 CREATE_SQLITE = "YES" # YES or NO
-SQLITE_DATABASE_PATH = '/cygdrive/d/wikiscripts/sqlite/wikipedia'  # This needs to be a full qualified path
-
-# We need the externallinks table and we want the data to be global
-global linkrows  # make this global to be able to use it in subfunctions without having to pass them on
+SQLITE_DATABASE_PATH = '/cygdrive/d/wikiscripts/sqlite/'  # This needs to be a full qualified path ending with a /
 
 # English is our default code so we initiate everything as English
 LANGUAGE_CODE = 'en'
@@ -225,27 +222,37 @@ if GENERATE_SQL == "YES":
 	print('parse_wikidump.py: writing to SQL file: '+ write_to_sql_file)
 # Directly connect to sqlite database
 if CREATE_SQLITE == "YES":
-	SQLITE_DATABASE = SQLITE_DATABASE_PATH + file_prefix + 'wikipedia.db'
-	wikidb = sqlite3.connect(SQLITE_DATABASE)
+	# Create in memory database to speed up the process
+	wikidb = sqlite3.connect(':memory:') # create a memory database
 	cursor = wikidb.cursor()
+	SQLITE_DATABASE = SQLITE_DATABASE_PATH + file_prefix + 'wikipedia.db'
+	# Change to work in memory with the tables and write out at the end to disk
+#	wikidb = sqlite3.connect(SQLITE_DATABASE)
+#	cursor = wikidb.cursor()
 	sqlcommand = 'drop table if exists ' + file_prefix + '_wikipedia'
 	cursor.execute(sqlcommand)
 	sqlcommand = 'create table if not exists ' + file_prefix + '_wikipedia ' + Table_Fields
 	cursor.execute(sqlcommand)
 	wikidb.commit()
-	print('parse_wikidump.py: inserting rows for table ' + file_prefix + '_wikipedia in database ' + SQLITE_DATABASE)
-	# No longer do below it is terribly slow to run trough 100.0000 python tuples of tuples. Simply query on title
-	## First read all of the records of table externallinks for our language
-	#sqlcommand = 'select * from ' + file_prefix + '_externallinks'
-	#cursor.execute(sqlcommand)
-	#linkrows = cursor.fetchall()
-	#print('Number of rows retrieved from '+file_prefix + '_externallinks: '+str(len(linkrows))+'\n')
-#	a = 0
-#	while a < 10:
-#		print(linkrows[a])
-#		a += 1
-
-
+	# Now create in memory table <language_code>_externallinks.
+	# Could be done shorter but this is more compatible through python versions
+	cursor.execute("attach database '" + SQLITE_DATABASE + "' as filebased_db")
+	#print("attach database '" + SQLITE_DATABASE + "' as filebased_db")
+	cursor.execute("select sql from filebased_db.sqlite_master where type='table' and name='" + file_prefix + "_externallinks'")
+	#print("select sql from filebased_db.sqlite_master where type='table' and name='" + file_prefix + "_externallinks'")
+	sql_create_table = cursor.fetchone()[0]
+	cursor.execute(sql_create_table);
+	cursor.execute("insert into " + file_prefix + "_externallinks select * from filebased_db." + file_prefix + "_externallinks")
+	cursor.execute('CREATE INDEX ' + file_prefix + 'externallinks_TITLE on ' + file_prefix + '_externallinks(TITLE)')
+	#print(str(cursor.execute('.schema')))
+	# Now we detach the file based database and continue in memory
+	cursor.execute("detach database filebased_db")
+	wikidb.commit()
+	#cursor.execute('select count(title) from ' + file_prefix + '_externallinks')
+	#print(str(cursor.fetchone()))
+	
+	#print('parse_wikidump.py: inserting rows for table ' + file_prefix + '_wikipedia in database ' + SQLITE_DATABASE)
+	print('parse_wikidump.py: inserting rows in table ' + file_prefix + '_wikipedia in in memory database ')
 
 # Start reading from our wikipedia xml.bz2 file	
 with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
@@ -317,14 +324,14 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 					#print(sqlcommand)
 					cursor.execute(sqlcommand)
 					# For testing we want immediate commits
-					wikidb.commit()
+					#wikidb.commit()
 				pagecounter += 1
 				raw_page_string = ""
 				#page_string = ""
 				#pagecounter += 1
 				if pagecounter == 2500:
 					if CREATE_SQLITE == "YES":
-						# Do a databse commit every 5000 rows
+						# Do a databse commit every 2500 rows
 						wikidb.commit()
 					totpagecounter += pagecounter
 					pagecounter = 0
@@ -344,10 +351,19 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 			if GENERATE_OSM == "YES":
 				osm_file.close()
 			if CREATE_SQLITE == "YES":
-				sqlcommand = 'create index ' + file_prefix + 'TITLE on ' + file_prefix + '_wikipedia(TITLE);'
+				cursor.execute('drop table '+file_prefix + '_externallinks')
+				cursor.execute("attach database '" + SQLITE_DATABASE + "' as filebased_db")
+				sqlcommand = 'drop table if exists filebased_db.' + file_prefix + '_wikipedia'
+				cursor.execute(sqlcommand)
+				sqlcommand = 'create table if not exists filebased_db.' + file_prefix + '_wikipedia ' + Table_Fields
+				cursor.execute(sqlcommand)
+				wikidb.commit()
+				cursor.execute('insert into filebased_db.' + file_prefix + '_wikipedia select * from ' + file_prefix + '_wikipedia')
+				sqlcommand = 'create index if not exists filebased_db.' + file_prefix + 'TITLE on filebased_db.' + file_prefix + '_wikipedia(TITLE);'
 				cursor.execute(sqlcommand)
 				#sqlcommand = 'create view if not exists ' + file_prefix + '_wikipedia_view as select title, lat,lon,"("||wikipediaurl||"; "||url||"; Country/Region: "||Country||"/"||SubRegion||")" as comment,content from ' + file_prefix + '_wikipedia inner join wp_coords_red0 on wp_coords_red0.titel=' + file_prefix + '_wikipedia.title and lang="' + file_prefix +'";'
 				#cursor.execute(sqlcommand)
+				cursor.execute("detach database filebased_db")
 				wikidb.close()
 			print('\nTotal processed pages ' + str(totpagecounter + pagecounter) + '.')
 	#print('\n\nNow writing the ' + write_to_gpx_file + ' file')
