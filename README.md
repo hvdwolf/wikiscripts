@@ -16,4 +16,8 @@ Order of actions:
   - download wikipedia or wikivoyage database dumps.
   - parse wikipedia or wikivoyage dumps and import "coordiantes containing" articles into sqlite DB, based on externallinks table.
   - export imported articles with coordinates to CSV files.
-  - (optionally but in this case:) Import CSV files into MapFactor Navigator Free POI mcda files (This last part not in tis repo).
+  - 
+  
+
+The current goal of these scripts is to convert the created CSV files into MapFactor Navigator Free POI mca files to be uses in Mapfactor Navigator Free. 
+This convert step and program (diggerQT/digger_console) is not part of this repository and not part of this GPL-2 license.
