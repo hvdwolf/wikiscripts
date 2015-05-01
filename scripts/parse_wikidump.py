@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# version 0.2, 2015-04-28, Harry van der Wolf
+# version 0.3, 2015-05-01, Harry van der Wolf
 # This file must be used on a compressed xml.bz file
 # Usage: python parse_wikidump.py <iso-639-1 language code>
 # example: python parse_wikidump.py en
