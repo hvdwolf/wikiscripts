@@ -34,8 +34,8 @@ GZIPPED_SQL = "YES" # YES or NO
 Table_Fields = "(TITLE TEXT, WIKIVOYAGEURL TEXT, URL TEXT, CONTENT TEXT)"
 
 CREATE_SQLITE = "YES" # YES or NO
-SQLITE_DATABASE = '/cygdrive/c/Users/harryvanderwolf/sqlite/wikipedia.db'  # This needs to be the database via a full qualified path
-#SQLITE_MASTER_DATABASE = '/cygdrive/c/Users/harryvanderwolf/sqlite/wp_coords_red0.db'
+SQLITE_DATABASE = '/cygdrive/d/wikiscripts/sqlite/wikipedia'  # This needs to be the database via a full qualified path
+
 
 # English is our default code so we initiate everything as English
 LANGUAGE_CODE = 'en'
