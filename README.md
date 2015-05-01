@@ -18,5 +18,7 @@ Order of actions:
   - export imported articles with coordinates to CSV files.
   
 
-The current goal of these scripts is to convert the created CSV files into MapFactor Navigator Free POI mca files to be uses in Mapfactor Navigator Free. 
+
+The current goal of these scripts is to convert the created CSV files into MapFactor Navigator Free POI mca files to be used in Mapfactor Navigator Free. 
 This convert step and program (diggerQT/digger_console) is not part of this repository and not part of this GPL-2 license.
+Note: This repository temporarily also holds the created csv files and mca files in zip format in the tmp folder.
