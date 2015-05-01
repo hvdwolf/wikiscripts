@@ -5,7 +5,10 @@
 
 # Run from the scripts folder
 
-languages="ar ca cs da de el en eo es et eu fa fi fr gl he hi hr hu it ja ko lt ms nl nn no pl pt ro ru simple sk sl sr sv te tr uk vi vo zh" 
+#languages="ar ca cs da de el en eo es et eu fa fi fr gl he hi hr hu it ja ko lt ms nl nn no pl pt ro ru simple sk sl sr sv te tr uk vi vo zh" 
+# There are only a limited amount of wikivoyage dumps available
+languages="de en es fr it nl pl pt ro sv vi" 
+
 
 mkdir -p ../output
 for language in $languages
@@ -25,3 +28,7 @@ mv ${language}wikivoyage2.csv ${language}wikivoyage.csv
 
 printf "\n\n"
 done
+
+# remove 0 byte files
+find -name '*' -size 0 -delete
+
