@@ -19,6 +19,7 @@ sqlite3 ../sqlite/${language}wikipedia.db <<!
 select * from ${language}_wikivoyage;
 !
 # do some reformating like the &lt; to < and &gt; to >
+printf "Some additional cleaning of the csv files"
 sed -e 's+&amp;+&+g' -e 's+&gt;+>+g' -e 's+&lt;+<+g' -e 's+nbsp;+ +g' ${language}wikivoyage.csv > ${language}wikivoyage2.csv
 mv ${language}wikivoyage2.csv ${language}wikivoyage.csv
 
