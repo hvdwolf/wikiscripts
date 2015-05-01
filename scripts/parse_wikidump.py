@@ -49,7 +49,9 @@ SQLITE_DATABASE_PATH = '/cygdrive/d/wikiscripts/sqlite/'  # This needs to be a f
 LANGUAGE_CODE = 'en'
 ARTICLE_URL = "Article url: "
 WIKI_PAGE_URL = "Wikipedia: "
-# And in the function below we adapt
+# And in the function below we adapt the specific names of the languages. This needs to become a separate
+# include file so that everyone can simply add his/her language specifics and we import it in the scripts
+# where necessary
 def language_specifics(lang_code):
 	global LANGUAGE_CODE
 	global ARTICLE_URL
