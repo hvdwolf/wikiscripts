@@ -43,7 +43,7 @@ Table_Fields = "(TITLE TEXT, LATITUDE FLOAT, LONGITUDE FLOAT, REMARKS TEXT, CONT
 # The csv output can contain (many) duplicates. We don't want that. In our database we can easily remove duplicates and then write 
 # a csv from the database. 
 CREATE_SQLITE = "YES" # YES or NO
-SQLITE_DATABASE_PATH = '/cygdrive/d/LocalData_387640/Datadir/Navigatie/wikimedia-downloads/sqlite/'  # This needs to be a full qualified path
+SQLITE_DATABASE_PATH = '/cygdrive/d/wikiscripts/sqlite/wikipedia'  # This needs to be a full qualified path
 
 # We need the externallinks table and we want the data to be global
 global linkrows  # make this global to be able to use it in subfunctions without having to pass them on
