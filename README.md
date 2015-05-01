@@ -1,5 +1,7 @@
 This repository holds a set of python and shell scripts to download and parse wikipedia and wikivoyage dumps from dumps.wikimedia.org
 
+NOTE: Currently the state of these scripts is under constant change.
+
 Wikipedia and wikivoyage are created by language, not by country. As such they are classified by the ISO-639-1 2-digit language code.
 Wikipedia gets more and more articles where geographic coordinates are added (when applicable). Wikivoyage is a spin-off of wikipedia where it only deals about “places of interest / places to go”. Unfortunately not all articles have coordinates.
 
