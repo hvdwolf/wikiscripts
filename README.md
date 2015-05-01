@@ -5,7 +5,7 @@ NOTE: Currently the state of these scripts is under constant change.
 Wikipedia and wikivoyage are created by language, not by country. As such they are classified by the ISO-639-1 2-digit language code.
 Wikipedia gets more and more articles where geographic coordinates are added (when applicable). Wikivoyage is a spin-off of wikipedia where it only deals about “places of interest / places to go”. Unfortunately not all articles have coordinates.
 
-SQLite is used as cross-platform, super simple database.
+SQLite is used as cross-platform, super simple database to hold the "intermediate" data.
 
 It all starts with the "language_code"wiki-latest-externallinks.sql.gz dumps.
 The externallinks is a huge sql script containing all links for all pages for that specific language.
