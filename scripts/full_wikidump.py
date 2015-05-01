@@ -44,7 +44,7 @@ GENERATE_OSM = "NO" # YES or NO
 OSM_HEADER = "<?xml version='1.0' encoding='UTF-8'?>\n<osm version='0.5' generator='dump_parse_wiki-" + SCRIPT_VERSION + ">\n"
 
 CREATE_SQLITE = "YES" # YES or NO
-SQLITE_DATABASE = '/cygdrive/c/Users/harryvanderwolf/sqlite/wikipedia'  # This needs to be the database via a full qualified path
+SQLITE_DATABASE = '/cygdrive/d/wikiscripts/sqlite/wikipedia'  # This needs to be the database via a full qualified path
 
 # English is our default code so we initiate everything as English
 LANGUAGE_CODE = 'en'
