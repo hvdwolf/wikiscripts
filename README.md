@@ -16,7 +16,7 @@ These externallinks import will be the reference table for the sqlite database f
 Order of actions:
   - download, parse and import the "language_code"wiki-latest-externallinks.sql.gz  files into a "language_code"_wikipedia sqlite DB.
   - download wikipedia or wikivoyage database dumps.
-  - parse wikipedia or wikivoyage dumps and import "coordiantes containing" articles into sqlite DB, based on externallinks table.
+  - parse wikipedia or wikivoyage dumps and import "coordinates containing" articles into sqlite DB, based on externallinks table.
   - export imported articles with coordinates to CSV files.
   
 
