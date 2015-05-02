@@ -9,7 +9,7 @@ SQLite is used as cross-platform, super simple database to hold the "intermediat
 
 It all starts with the "language_code"wiki-latest-externallinks.sql.gz dumps.
 The externallinks is a huge sql script containing all links for all pages for that specific language.
-Some of those inserts are “geohack” (2,3) inserts statements containing the geographic coordinates of the articles. We need those coordinates and only those links are imported and the coordinates, which we need for our articles, are extracted.  
+Some of those inserts are “geohack” inserts statements containing the geographic coordinates of the articles. We need those coordinates and only those links are imported and the coordinates, which we need for our articles, are extracted.  
 These externallinks import will be the reference table for the sqlite database for the wikiepdia and wikivoyage articles.
 
 
