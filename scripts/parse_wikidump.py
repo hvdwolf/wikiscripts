@@ -87,6 +87,7 @@ def language_specifics(lang_code):
 def parse_wiki_page(raw_page):
 	#print(raw_page)
 	page_string = ""
+	text_string = ""
 	# We do need a "state detector" to see whether we are in a <text......</text> area
 	text_area = 0
 	# We also need one for the optional infobox as we don't want that part
