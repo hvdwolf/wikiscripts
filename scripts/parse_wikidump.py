@@ -338,7 +338,8 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 					pagecounter = 0
 					print('\nProcessed pages ' + str(totpagecounter) + '. Elapsed time: ' + str(datetime.datetime.now().replace(microsecond=0) - start_time))
 		if "</mediawiki>" in str(line):
-			if GENERATE_CSV == "YES" and GZIPPED_CVS == "YES":
+			# Below block should be outside this if ... statement in case we encounter and EOF error or something like that.
+			'''if GENERATE_CSV == "YES" and GZIPPED_CVS == "YES":
 				#csv_file.close()
 				gzipped_csv.close()
 			if GENERATE_SQL == "YES":
@@ -361,10 +362,39 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 				#sqlcommand = 'create view if not exists ' + file_prefix + '_wikipedia_view as select title, lat,lon,"("||wikipediaurl||"; "||url||"; Country/Region: "||Country||"/"||SubRegion||")" as comment,content from ' + file_prefix + '_wikipedia inner join wp_coords_red0 on wp_coords_red0.titel=' + file_prefix + '_wikipedia.title and lang="' + file_prefix +'";'
 				#cursor.execute(sqlcommand)
 				cursor.execute("detach database filebased_db")
-				wikidb.close()
+				wikidb.close() '''
 			print('\nTotal processed pages ' + str(totpagecounter + pagecounter) + '.')
 	#print('\n\nNow writing the ' + write_to_gpx_file + ' file')
 
+# Close everything nicely, whether we have a corrupt bzip, EOF error or whatever issue
+if GENERATE_CSV == "YES" and GZIPPED_CVS == "YES":
+	#csv_file.close()
+	gzipped_csv.close()
+if GENERATE_SQL == "YES":
+	sql_file.write('\n\ncreate index ' + file_prefix + 'TITLE on ' + file_prefix + '_wikipedia(TITLE);\n\n')
+	#sql_file.write('drop view if exists ' + file_prefix + '_wikipedia_view;\n')
+	#sql_file.write('create view if not exists ' + file_prefix + '_wikipedia_view as select title, lat,lon,"("||wikipediaurl||"; "||url||"; Country/Region: "||Country||"/"||SubRegion||")" as comment,content from ' + file_prefix + '_wikipedia inner join wp_coords_red0 on wp_coords_red0.titel=' + file_prefix + '_wikipedia.title and lang="' + file_prefix +'";\n')
+	sql_file.close()
+if CREATE_SQLITE == "YES":
+	cursor.execute('drop table '+file_prefix + '_externallinks')
+	cursor.execute("attach database '" + SQLITE_DATABASE + "' as filebased_db")
+	sqlcommand = 'drop table if exists filebased_db.' + file_prefix + '_wikipedia'
+	cursor.execute(sqlcommand)
+	sqlcommand = 'create table if not exists filebased_db.' + file_prefix + '_wikipedia ' + Table_Fields
+	cursor.execute(sqlcommand)
+	wikidb.commit()
+	cursor.execute('insert into filebased_db.' + file_prefix + '_wikipedia select * from ' + file_prefix + '_wikipedia')
+	wikidb.commit()
+	sqlcommand = 'create index if not exists filebased_db.' + file_prefix + 'TITLE on ' + file_prefix + '_wikipedia(TITLE);'
+	cursor.execute(sqlcommand)
+	#sqlcommand = 'create view if not exists ' + file_prefix + '_wikipedia_view as select title, lat,lon,"("||wikipediaurl||"; "||url||"; Country/Region: "||Country||"/"||SubRegion||")" as comment,content from ' + file_prefix + '_wikipedia inner join wp_coords_red0 on wp_coords_red0.titel=' + file_prefix + '_wikipedia.title and lang="' + file_prefix +'";'
+	#cursor.execute(sqlcommand)
+	cursor.execute("detach database filebased_db")
+	wikidb.close()
+	
+	
+	
+	
 str_end_time = time.strftime("%Y-%m-%d %H:%M:%S")
 end_time = datetime.datetime.now().replace(microsecond=0)	
 print('Start time: ' + str_start_time + '\n')
