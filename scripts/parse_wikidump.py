@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# version 0.3, 2015-05-01, Harry van der Wolf
+# version 0.2, 2015-04-28, Harry van der Wolf
 # This file must be used on a compressed xml.bz file
 # Usage: python parse_wikidump.py <iso-639-1 language code>
 # example: python parse_wikidump.py en
@@ -43,15 +43,13 @@ Table_Fields = "(TITLE TEXT, LATITUDE FLOAT, LONGITUDE FLOAT, REMARKS TEXT, CONT
 # The csv output can contain (many) duplicates. We don't want that. In our database we can easily remove duplicates and then write 
 # a csv from the database. 
 CREATE_SQLITE = "YES" # YES or NO
-SQLITE_DATABASE_PATH = '/cygdrive/d/wikiscripts/sqlite/'  # This needs to be a full qualified path ending with a /
+SQLITE_DATABASE_PATH = '/cygdrive/d/wikiscripts/sqlite/'  # This needs to be a full qualified path
 
 # English is our default code so we initiate everything as English
 LANGUAGE_CODE = 'en'
 ARTICLE_URL = "Article url: "
 WIKI_PAGE_URL = "Wikipedia: "
-# And in the function below we adapt the specific names of the languages. This needs to become a separate
-# include file so that everyone can simply add his/her language specifics and we import it in the scripts
-# where necessary
+# And in the function below we adapt
 def language_specifics(lang_code):
 	global LANGUAGE_CODE
 	global ARTICLE_URL
@@ -339,9 +337,6 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 					pagecounter = 0
 					print('\nProcessed pages ' + str(totpagecounter) + '. Elapsed time: ' + str(datetime.datetime.now().replace(microsecond=0) - start_time))
 		if "</mediawiki>" in str(line):
-			if GENERATE_GPX == "YES":
-				gpx_file.write('</gpx>')
-				gpx_file.close()
 			if GENERATE_CSV == "YES" and GZIPPED_CVS == "YES":
 				#csv_file.close()
 				gzipped_csv.close()
@@ -350,8 +345,6 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 				#sql_file.write('drop view if exists ' + file_prefix + '_wikipedia_view;\n')
 				#sql_file.write('create view if not exists ' + file_prefix + '_wikipedia_view as select title, lat,lon,"("||wikipediaurl||"; "||url||"; Country/Region: "||Country||"/"||SubRegion||")" as comment,content from ' + file_prefix + '_wikipedia inner join wp_coords_red0 on wp_coords_red0.titel=' + file_prefix + '_wikipedia.title and lang="' + file_prefix +'";\n')
 				sql_file.close()
-			if GENERATE_OSM == "YES":
-				osm_file.close()
 			if CREATE_SQLITE == "YES":
 				cursor.execute('drop table '+file_prefix + '_externallinks')
 				cursor.execute("attach database '" + SQLITE_DATABASE + "' as filebased_db")
@@ -361,7 +354,8 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 				cursor.execute(sqlcommand)
 				wikidb.commit()
 				cursor.execute('insert into filebased_db.' + file_prefix + '_wikipedia select * from ' + file_prefix + '_wikipedia')
-				sqlcommand = 'create index if not exists filebased_db.' + file_prefix + 'TITLE on filebased_db.' + file_prefix + '_wikipedia(TITLE);'
+				wikidb.commit()
+				sqlcommand = 'create index if not exists filebased_db.' + file_prefix + 'TITLE on ' + file_prefix + '_wikipedia(TITLE);'
 				cursor.execute(sqlcommand)
 				#sqlcommand = 'create view if not exists ' + file_prefix + '_wikipedia_view as select title, lat,lon,"("||wikipediaurl||"; "||url||"; Country/Region: "||Country||"/"||SubRegion||")" as comment,content from ' + file_prefix + '_wikipedia inner join wp_coords_red0 on wp_coords_red0.titel=' + file_prefix + '_wikipedia.title and lang="' + file_prefix +'";'
 				#cursor.execute(sqlcommand)
