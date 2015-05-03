@@ -31,7 +31,7 @@ SCRIPT_VERSION = "0.1"
 MAX_CHARACTERS = 600
 # What to generate
 # Do not only write csv. the csv export can contain (many) duplicates. Always go for sqlite and write to csv as backup.
-GENERATE_CSV = "NO" # YES or NO
+GENERATE_CSV = "YES" # YES or NO
 GZIPPED_CVS = "YES" # YES or NO
 CSV_HEADER = ['NAME','LATITUDE','LONGITUDE','REMARKS','CONTENT']
 
@@ -42,7 +42,7 @@ Table_Fields = "(TITLE TEXT, LATITUDE FLOAT, LONGITUDE FLOAT, REMARKS TEXT, CONT
 # Writing the data to the sqlite database is preferred over ONLY writing to csv, even though that might be a lot faster.
 # The csv output can contain (many) duplicates. We don't want that. In our database we can easily remove duplicates and then write 
 # a csv from the database. 
-CREATE_SQLITE = "YES" # YES or NO
+CREATE_SQLITE = "NO" # YES or NO
 SQLITE_DATABASE_PATH = '/cygdrive/d/wikiscripts/sqlite/'  # This needs to be a full qualified path
 
 # English is our default code so we initiate everything as English
@@ -204,11 +204,11 @@ print('parse_wikidump.py: reading contents of: ' + wikipedia_file)
 # Do we want a CSV file?
 if GENERATE_CSV == "YES":
 	if GZIPPED_CVS == "YES":
-		write_to_csv_file = file_prefix + '_wikipedia.csv.gz'
+		write_to_csv_file = '../output/' + file_prefix + '_wikipedia.csv.gz'
 		gzipped_csv = gzip.open(write_to_csv_file, 'wb')
 		csv_file = csv.writer(gzipped_csv, delimiter=',',  quotechar='"', quoting=csv.QUOTE_ALL)
 	else:
-		write_to_csv_file = file_prefix + '_wikipedia.csv'
+		write_to_csv_file = '../output/' + file_prefix + '_wikipedia.csv'
 		csv_file = csv.writer(open(write_to_csv_file, 'wb'), delimiter=',',  quotechar='"', quoting=csv.QUOTE_ALL)
 	csv_file.writerow(CSV_HEADER)
 	print('parse_wikidump.py: writing to CSV file: '+ write_to_csv_file)
@@ -224,37 +224,39 @@ if GENERATE_SQL == "YES":
 	sql_file.write('create table ' + file_prefix + '_wikipedia ' + Table_Fields + ';\n\n')
 	print('parse_wikidump.py: writing to SQL file: '+ write_to_sql_file)
 # Directly connect to sqlite database
+#if CREATE_SQLITE == "YES":
+#Doesn't matter whether whether we create sqlite database. We will always use the "in memory" externallinks database
+# Create in memory database to speed up the process
+wikidb = sqlite3.connect(':memory:') # create a memory database
+cursor = wikidb.cursor()
+SQLITE_DATABASE = SQLITE_DATABASE_PATH + file_prefix + 'wikipedia.db'
+# Change to work in memory with the tables and write out at the end to disk
+#wikidb = sqlite3.connect(SQLITE_DATABASE)
+#cursor = wikidb.cursor()
+sqlcommand = 'drop table if exists ' + file_prefix + '_wikipedia'
+cursor.execute(sqlcommand)
+sqlcommand = 'create table if not exists ' + file_prefix + '_wikipedia ' + Table_Fields
+cursor.execute(sqlcommand)
+wikidb.commit()
+# Now create in memory table <language_code>_externallinks.
+# Could be done shorter but this is more compatible through python versions
+cursor.execute("attach database '" + SQLITE_DATABASE + "' as filebased_db")
+#print("attach database '" + SQLITE_DATABASE + "' as filebased_db")
+cursor.execute("select sql from filebased_db.sqlite_master where type='table' and name='" + file_prefix + "_externallinks'")
+#print("select sql from filebased_db.sqlite_master where type='table' and name='" + file_prefix + "_externallinks'")
+sql_create_table = cursor.fetchone()[0]
+cursor.execute(sql_create_table);
+cursor.execute("insert into " + file_prefix + "_externallinks select * from filebased_db." + file_prefix + "_externallinks")
+cursor.execute('CREATE INDEX ' + file_prefix + 'externallinks_TITLE on ' + file_prefix + '_externallinks(TITLE)')
+#print(str(cursor.execute('.schema')))
+# Now we detach the file based database and continue in memory
+cursor.execute("detach database filebased_db")
+wikidb.commit()
+#cursor.execute('select count(title) from ' + file_prefix + '_externallinks')
+#print(str(cursor.fetchone()))
+print('parse_wikidump.py: Created table ' + file_prefix + '_externallinks in memory')
+
 if CREATE_SQLITE == "YES":
-	# Create in memory database to speed up the process
-	wikidb = sqlite3.connect(':memory:') # create a memory database
-	cursor = wikidb.cursor()
-	SQLITE_DATABASE = SQLITE_DATABASE_PATH + file_prefix + 'wikipedia.db'
-	# Change to work in memory with the tables and write out at the end to disk
-#	wikidb = sqlite3.connect(SQLITE_DATABASE)
-#	cursor = wikidb.cursor()
-	sqlcommand = 'drop table if exists ' + file_prefix + '_wikipedia'
-	cursor.execute(sqlcommand)
-	sqlcommand = 'create table if not exists ' + file_prefix + '_wikipedia ' + Table_Fields
-	cursor.execute(sqlcommand)
-	wikidb.commit()
-	# Now create in memory table <language_code>_externallinks.
-	# Could be done shorter but this is more compatible through python versions
-	cursor.execute("attach database '" + SQLITE_DATABASE + "' as filebased_db")
-	#print("attach database '" + SQLITE_DATABASE + "' as filebased_db")
-	cursor.execute("select sql from filebased_db.sqlite_master where type='table' and name='" + file_prefix + "_externallinks'")
-	#print("select sql from filebased_db.sqlite_master where type='table' and name='" + file_prefix + "_externallinks'")
-	sql_create_table = cursor.fetchone()[0]
-	cursor.execute(sql_create_table);
-	cursor.execute("insert into " + file_prefix + "_externallinks select * from filebased_db." + file_prefix + "_externallinks")
-	cursor.execute('CREATE INDEX ' + file_prefix + 'externallinks_TITLE on ' + file_prefix + '_externallinks(TITLE)')
-	#print(str(cursor.execute('.schema')))
-	# Now we detach the file based database and continue in memory
-	cursor.execute("detach database filebased_db")
-	wikidb.commit()
-	#cursor.execute('select count(title) from ' + file_prefix + '_externallinks')
-	#print(str(cursor.fetchone()))
-	
-	print('parse_wikidump.py: Created table ' + file_prefix + '_externallinks in memory')
 	print('parse_wikidump.py: inserting rows in table ' + file_prefix + '_wikipedia in in memory database ')
 
 # Start reading from our wikipedia xml.bz2 file	
