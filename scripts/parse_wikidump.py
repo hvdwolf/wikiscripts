@@ -19,7 +19,7 @@
 # Also: DO NOT forget to "set PYTHONIOENCODING='utf-8'" on windows or other non-utf-8 environments.
 
 
-import os, sys, bz2, gzip, csv, re, time, datetime, sqlite3
+import os, sys, bz2, gzip, csv, re, time, datetime, sqlite3, logging
 import wikifunctions
 
 # First check on version
@@ -27,6 +27,7 @@ if sys.version_info<(3,0,0):
 	reload(sys)  
 	sys.setdefaultencoding('utf8')
 #else:
+#	import unicodedata
 #	import imp
 #	imp.reload(sys)  
 #sys.setdefaultencoding('utf8')
@@ -103,6 +104,23 @@ def parse_wiki_page(raw_page):
 	for line in raw_page.splitlines():
 		#print(str(line))
 		# Just follow the chronological order in the file: <page><title></title><text></text></page>
+		if '<title>' in str(line):
+			#page_string += line + '\n'
+			title_string = line
+			extlinkdata = [None] * 6 # Create a list with 6 "None"s including our title which stays empty until proven "linked" via externallinks
+			search_string = title_string.replace("    <title>","").replace("</title>","")
+			try:
+				cursor.execute('select * from ' + file_prefix + '_externallinks where title="'+search_string+'"')
+				row = cursor.fetchone()
+				if row[0] == search_string:
+					extlinkdata[0] = search_string
+					extlinkdata[1] = row[1]		# latitude
+					extlinkdata[2] = row[2]		# longitude
+					extlinkdata[3] = row[3]		# language
+					extlinkdata[4] = row[4]		# poitype
+					extlinkdata[5] = row[5]		# region
+			except:
+				pass
 		# However take the text_area status into account
 		if text_area == 1:
 			# We are in the text area part
@@ -140,24 +158,6 @@ def parse_wiki_page(raw_page):
 				else:
 					#page_string += str(line.replace('b"',''))
 					text_string += str(line.replace('b"',''))
-		if '<title>' in str(line):
-			#page_string += line + '\n'
-			title_string = line
-			extlinkdata = [None] * 6 # Create a list with 6 "None"s including our title which stays empty until proven "linked" via externallinks
-			search_string = title_string.replace("    <title>","").replace("</title>","")
-			sqlcommand = 'select * from ' + file_prefix + '_externallinks where title="'+search_string+'"'
-			try:
-				cursor.execute(sqlcommand)
-				row = cursor.fetchone()
-				if row[0] == search_string:
-					extlinkdata[0] = search_string
-					extlinkdata[1] = row[1]		# latitude
-					extlinkdata[2] = row[2]		# longitude
-					extlinkdata[3] = row[3]		# language
-					extlinkdata[4] = row[4]		# poitype
-					extlinkdata[5] = row[5]		# region
-			except:
-				pass
 
 		if '<text xml:space="preserve">' in str(line):
 			#page_string += '    <text>'
@@ -165,7 +165,7 @@ def parse_wiki_page(raw_page):
 			text_area = 1
 			if '{{Infobox' in str(line):
 				infobox_area = 1
-	# Return our page info
+	# Return our page info in the normal way
 	return extlinkdata, text_string, web_string
 ## end of parse_wiki_page
 ###########################################################################
@@ -196,6 +196,9 @@ str_start_time = time.strftime("%Y-%m-%d %H:%M:%S")
 print('start time: ' + time.strftime("%Y-%m-%d %H:%M:%S") + '\n')
 print("Working on language: " + LANGUAGE_CODE)
 print('parse_wikidump.py: reading contents of: ' + wikipedia_file)
+# Create log file
+logging.basicConfig(filename='../logs/' + file_prefix + '_wikipedia.log',level=logging.DEBUG)
+logging.info('start time: ' + time.strftime("%Y-%m-%d %H:%M:%S") + '\n')
 # Do we want a CSV file?
 if GENERATE_CSV == "YES":
 	if GZIPPED_CVS == "YES":
@@ -204,9 +207,10 @@ if GENERATE_CSV == "YES":
 		csv_file = csv.writer(gzipped_csv, delimiter=',',  quotechar='"', quoting=csv.QUOTE_ALL)
 	else:
 		write_to_csv_file = '../output/' + file_prefix + '_wikipedia.csv'
-		csv_file = csv.writer(open(write_to_csv_file, 'wt'), delimiter=',',  quotechar='"', quoting=csv.QUOTE_ALL)
+		csv_file = csv.writer(open(write_to_csv_file, 'w'), delimiter=',',  quotechar='"', quoting=csv.QUOTE_ALL)
 	csv_file.writerow(CSV_HEADER)
 	print('parse_wikidump.py: writing to CSV file: '+ write_to_csv_file)
+	logging.info('parse_wikidump.py: writing to CSV file: '+ write_to_csv_file+'\n')
 # Generate SQL
 if GENERATE_SQL == "YES":
 	if GZIPPED_SQL == "YES":
@@ -218,6 +222,7 @@ if GENERATE_SQL == "YES":
 	sql_file.write('drop table if exists ' + file_prefix + '_wikipedia;\n')
 	sql_file.write('create table ' + file_prefix + '_wikipedia ' + Table_Fields + ';\n\n')
 	print('parse_wikidump.py: writing to SQL file: '+ write_to_sql_file)
+	logging.info('parse_wikidump.py: writing to SQL file: '+ write_to_sql_file+'\n')
 # Directly connect to sqlite database
 #if CREATE_SQLITE == "YES":
 #Doesn't matter whether whether we create sqlite database. We will always use the "in memory" externallinks database
@@ -250,9 +255,11 @@ wikidb.commit()
 #cursor.execute('select count(title) from ' + file_prefix + '_externallinks')
 #print(str(cursor.fetchone()))
 print('parse_wikidump.py: Created table ' + file_prefix + '_externallinks in memory')
+logging.info('parse_wikidump.py: Created table ' + file_prefix + '_externallinks in memory'+'\n')
 
 if CREATE_SQLITE == "YES":
 	print('parse_wikidump.py: inserting rows in table ' + file_prefix + '_wikipedia in in memory database ')
+	logging.info('parse_wikidump.py: inserting rows in table ' + file_prefix + '_wikipedia in in memory database.'+'\n')
 
 # Start reading from our wikipedia xml.bz2 file	
 with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
@@ -261,10 +268,12 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 	web_string = ""
 	pagecounter = 0
 	totpagecounter = 0
+	extlinkdata = []
 	# We need to read line by line as we have massive files, sometimes multiple GBs
 	for line in single_wikifile:
 		# We need to add a \n to make the lines separate
-		raw_page_string += str(line).replace("b'","") + str('\n')
+		#raw_page_string += str(line).replace("b'","") + str('\n')
+		raw_page_string += str(line)
 		#print(str(line).encode('utf-8'))
 		if "</siteinfo>" in str(line):
 			raw_page_string = ""
@@ -273,11 +282,11 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 			check_pulse = time.time()
 			if (check_pulse - heart_beat) > 600:   # 10 minutes -> 10*60 seconds
 				print('Heart beat at: '+str(datetime.datetime.now().replace(microsecond=0))+'. Script still alive.')
+				logging.info('Heart beat at: '+str(datetime.datetime.now().replace(microsecond=0))+'. Script still alive.')
 				heart_beat = time.time()
 			# And now we need to remove the \n' again. Obviously I'm doing something stupid
-			raw_page_string = raw_page_string.replace("\\n'","")
+			#raw_page_string = raw_page_string.replace("\\n'","")
 			# We also use the title string in extlinkdata[0] as "test" string. 
-			extlinkdata = []
 			# If it returns empty it means that we don't have a linking title with externallinks
 			extlinkdata, text_string,web_string = parse_wiki_page(raw_page_string)
 			# No do the final test 
@@ -335,6 +344,7 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 					totpagecounter += pagecounter
 					pagecounter = 0
 					print('\nProcessed pages ' + str(totpagecounter) + '. Elapsed time: ' + str(datetime.datetime.now().replace(microsecond=0) - start_time))
+					logging.info('\nProcessed pages ' + str(totpagecounter) + '. Elapsed time: ' + str(datetime.datetime.now().replace(microsecond=0) - start_time)+'\n')
 		elif "</mediawiki>" in str(line):
 			print('\nTotal processed pages ' + str(totpagecounter + pagecounter) + '.')
 	#print('\n\nNow writing the ' + write_to_gpx_file + ' file')
@@ -369,6 +379,9 @@ str_end_time = time.strftime("%Y-%m-%d %H:%M:%S")
 end_time = datetime.datetime.now().replace(microsecond=0)	
 print('Start time: ' + str_start_time + '\n')
 print('End time: ' + str_end_time + '\n')
+logging.info('End time: ' + str_end_time + '\n')
 print('Total time: ' + str(end_time - start_time))
+logging.info('Total time: ' + str(end_time - start_time)+'\n')
+logging.shutdown()
 
 #End of file
