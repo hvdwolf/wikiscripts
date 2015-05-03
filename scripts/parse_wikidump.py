@@ -32,7 +32,7 @@ MAX_CHARACTERS = 600
 # What to generate
 # Do not only write csv. the csv export can contain (many) duplicates. Always go for sqlite and write to csv as backup.
 GENERATE_CSV = "YES" # YES or NO
-GZIPPED_CVS = "YES" # YES or NO
+GZIPPED_CVS = "NO" # YES or NO
 CSV_HEADER = ['NAME','LATITUDE','LONGITUDE','REMARKS','CONTENT']
 
 GENERATE_SQL = "NO" # YES or NO
@@ -289,7 +289,7 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 			if extlinkdata[0] != "" and extlinkdata[0] != None:
 				#title_string = extlinkdata[0].replace("    <title>","").replace("</title>","")
 				title_string = extlinkdata[0]
-				print('Matching title: '+title_string)
+				print('Matching ' + file_prefix + ' title: '+title_string)
 				wikipediaurl = WIKI_PAGE_URL + 'http://' + LANGUAGE_CODE + '.wikipedia.org/wiki/' + title_string.replace(" ","_")
 				latitude = extlinkdata[1]
 				longitude = extlinkdata[2]
