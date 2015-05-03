@@ -10,7 +10,7 @@ reload(sys)
 sys.setdefaultencoding('utf8')
 
 # Try with the largest database being the english one
-SQLITE_DATABASE = '/cygdrive/d/LocalData_387640/Datadir/Navigatie/wikiscripts/sqlite/enwikipedia.db'  # This needs to be a full qualified path
+SQLITE_DATABASE = '/cygdrive/d/wikiscripts/sqlite/enwikipedia.db'  # This needs to be a full qualified path
 wikidb = sqlite3.connect(SQLITE_DATABASE)
 cursor = wikidb.cursor()
 
