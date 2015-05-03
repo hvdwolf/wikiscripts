@@ -103,25 +103,7 @@ def parse_wiki_page(raw_page):
 	web_string = ""
 	for line in raw_page.splitlines():
 		#print(str(line))
-		# Just follow the chronological order in the file: <page><title></title><text></text></page>
-		if '<title>' in str(line):
-			#page_string += line + '\n'
-			title_string = line
-			extlinkdata = [None] * 6 # Create a list with 6 "None"s including our title which stays empty until proven "linked" via externallinks
-			search_string = title_string.replace("    <title>","").replace("</title>","")
-			try:
-				cursor.execute('select * from ' + file_prefix + '_externallinks where title="'+search_string+'"')
-				row = cursor.fetchone()
-				if row[0] == search_string:
-					extlinkdata[0] = search_string
-					extlinkdata[1] = row[1]		# latitude
-					extlinkdata[2] = row[2]		# longitude
-					extlinkdata[3] = row[3]		# language
-					extlinkdata[4] = row[4]		# poitype
-					extlinkdata[5] = row[5]		# region
-			except:
-				pass
-		# However take the text_area status into account
+		# Take the text_area status into account
 		if text_area == 1:
 			# We are in the text area part
 			# Check for some infobox info we don't want in the string but that we can use as "official" website for the wiki article
@@ -166,7 +148,8 @@ def parse_wiki_page(raw_page):
 			if '{{Infobox' in str(line):
 				infobox_area = 1
 	# Return our page info in the normal way
-	return extlinkdata, text_string, web_string
+	#return extlinkdata, text_string, web_string
+	return text_string, web_string
 ## end of parse_wiki_page
 ###########################################################################
 
@@ -271,12 +254,30 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 	extlinkdata = []
 	# We need to read line by line as we have massive files, sometimes multiple GBs
 	for line in single_wikifile:
-		# We need to add a \n to make the lines separate
-		#raw_page_string += str(line).replace("b'","") + str('\n')
 		raw_page_string += str(line)
-		#print(str(line).encode('utf-8'))
 		if "</siteinfo>" in str(line):
 			raw_page_string = ""
+		elif "<title>" in str(line):
+			Match = 0
+			title_string = line.splitlines()
+			extlinkdata = [None] * 6 # Create a list with 6 "None"s including our title which stays empty until proven "linked" via externallinks
+			search_string = title_string[0].replace("    <title>","").replace("</title>","")
+			try:
+				cursor.execute('select * from ' + file_prefix + '_externallinks where title="'+search_string+'"')
+				#print('select * from ' + file_prefix + '_externallinks where title="'+search_string+'"')
+				row = cursor.fetchone()
+				#print(row)
+				if row[0] == search_string:
+					extlinkdata[0] = search_string
+					extlinkdata[1] = row[1]		# latitude
+					extlinkdata[2] = row[2]		# longitude
+					extlinkdata[3] = row[3]		# language
+					extlinkdata[4] = row[4]		# poitype
+					extlinkdata[5] = row[5]		# region
+					Match = 1
+					#print('Match: '+str(Match))
+			except:
+				pass
 		elif "</page>" in str(line):
 			# "heart beat check. Is this script still alife?
 			check_pulse = time.time()
@@ -284,11 +285,8 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 				print('Heart beat at: '+str(datetime.datetime.now().replace(microsecond=0))+'. Script still alive.')
 				logging.info('Heart beat at: '+str(datetime.datetime.now().replace(microsecond=0))+'. Script still alive.')
 				heart_beat = time.time()
-			# And now we need to remove the \n' again. Obviously I'm doing something stupid
-			#raw_page_string = raw_page_string.replace("\\n'","")
-			# We also use the title string in extlinkdata[0] as "test" string. 
-			# If it returns empty it means that we don't have a linking title with externallinks
-			extlinkdata, text_string,web_string = parse_wiki_page(raw_page_string)
+			if Match == 1:
+				text_string,web_string = parse_wiki_page(raw_page_string)
 			# No do the final test 
 			if extlinkdata[0] != "" and extlinkdata[0] != None:
 				#title_string = extlinkdata[0].replace("    <title>","").replace("</title>","")
@@ -305,9 +303,6 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 				# Below unicode does not work for csv
 				#text_string = unicode(text_string, encoding='utf-8')
 				text_string = wikifunctions.text_only(text_string)
-				# convert some HTML remnants DO NOT USE! BREAKS SOME GPX STRINGS
-				#HTML_DICTIONARY = {'&lt;':'<', '&gt;':'>', '&nbsp;':' ' }
-				#text_string = wikifunctions.replace_html_codes(text_string, HTML_DICTIONARY)
 				#limit to max "MAX_CHARACTERS" chars, remove leading \n and remove pipe/more separators
 				text_string = text_string[:MAX_CHARACTERS].replace('\\n"','',1).replace('|','')
 				# This might cut our sting in the middle of a sentence. We don't want that
@@ -347,6 +342,7 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 					logging.info('\nProcessed pages ' + str(totpagecounter) + '. Elapsed time: ' + str(datetime.datetime.now().replace(microsecond=0) - start_time)+'\n')
 		elif "</mediawiki>" in str(line):
 			print('\nTotal processed pages ' + str(totpagecounter + pagecounter) + '.')
+			logging.info('\nTotal processed pages ' + str(totpagecounter + pagecounter) + '.')
 	#print('\n\nNow writing the ' + write_to_gpx_file + ' file')
 
 # Close everything nicely, whether we have a corrupt bzip, EOF error or whatever issue
@@ -355,8 +351,6 @@ if GENERATE_CSV == "YES" and GZIPPED_CVS == "YES":
 	gzipped_csv.close()
 if GENERATE_SQL == "YES":
 	sql_file.write('\n\ncreate index ' + file_prefix + 'TITLE on ' + file_prefix + '_wikipedia(TITLE);\n\n')
-	#sql_file.write('drop view if exists ' + file_prefix + '_wikipedia_view;\n')
-	#sql_file.write('create view if not exists ' + file_prefix + '_wikipedia_view as select title, lat,lon,"("||wikipediaurl||"; "||url||"; Country/Region: "||Country||"/"||SubRegion||")" as comment,content from ' + file_prefix + '_wikipedia inner join wp_coords_red0 on wp_coords_red0.titel=' + file_prefix + '_wikipedia.title and lang="' + file_prefix +'";\n')
 	sql_file.close()
 if CREATE_SQLITE == "YES":
 	cursor.execute('drop table '+file_prefix + '_externallinks')
@@ -367,8 +361,6 @@ if CREATE_SQLITE == "YES":
 	cursor.execute('insert into filebased_db.' + file_prefix + '_wikipedia select * from ' + file_prefix + '_wikipedia')
 	wikidb.commit()
 	cursor.execute('create index if not exists filebased_db.' + file_prefix + 'TITLE on ' + file_prefix + '_wikipedia(TITLE);')
-	#sqlcommand = 'create view if not exists ' + file_prefix + '_wikipedia_view as select title, lat,lon,"("||wikipediaurl||"; "||url||"; Country/Region: "||Country||"/"||SubRegion||")" as comment,content from ' + file_prefix + '_wikipedia inner join wp_coords_red0 on wp_coords_red0.titel=' + file_prefix + '_wikipedia.title and lang="' + file_prefix +'";'
-	#cursor.execute(sqlcommand)
 	cursor.execute("detach database filebased_db")
 	wikidb.close()
 	
