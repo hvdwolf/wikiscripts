@@ -254,7 +254,7 @@ if CREATE_SQLITE == "YES":
 	#cursor.execute('select count(title) from ' + file_prefix + '_externallinks')
 	#print(str(cursor.fetchone()))
 	
-	#print('parse_wikidump.py: inserting rows for table ' + file_prefix + '_wikipedia in database ' + SQLITE_DATABASE)
+	print('parse_wikidump.py: Created table ' + file_prefix + '_externallinks in memory')
 	print('parse_wikidump.py: inserting rows in table ' + file_prefix + '_wikipedia in in memory database ')
 
 # Start reading from our wikipedia xml.bz2 file	
@@ -323,9 +323,8 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 				if GENERATE_SQL == "YES":
 					sql_file.write('insert into ' + file_prefix + '_wikipedia (TITLE, LATITUDE, LONGITUDE, REMARKS, CONTENT) values ("' + title_string + '","' + str(latitude) + '","' + str(longitude) + '","' + remarks + '","' + text_string + '");\n')
 				if CREATE_SQLITE == "YES":
-					sqlcommand = 'insert into ' + file_prefix + '_wikipedia (TITLE, LATITUDE, LONGITUDE, REMARKS, CONTENT) values ("' + title_string + '","' + str(latitude) + '","' + str(longitude) + '","' + remarks + '","' + text_string + '");'
 					#print(sqlcommand)
-					cursor.execute(sqlcommand)
+					cursor.execute('insert into ' + file_prefix + '_wikipedia (TITLE, LATITUDE, LONGITUDE, REMARKS, CONTENT) values ("' + title_string + '","' + str(latitude) + '","' + str(longitude) + '","' + remarks + '","' + text_string + '");')
 					# For testing we want immediate commits
 					#wikidb.commit()
 				pagecounter += 1
@@ -352,17 +351,12 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 			if CREATE_SQLITE == "YES":
 				cursor.execute('drop table '+file_prefix + '_externallinks')
 				cursor.execute("attach database '" + SQLITE_DATABASE + "' as filebased_db")
-				sqlcommand = 'drop table if exists filebased_db.' + file_prefix + '_wikipedia'
-				cursor.execute(sqlcommand)
-				sqlcommand = 'create table if not exists filebased_db.' + file_prefix + '_wikipedia ' + Table_Fields
-				cursor.execute(sqlcommand)
+				cursor.execute('drop table if exists filebased_db.' + file_prefix + '_wikipedia')
+				cursor.execute('create table if not exists filebased_db.' + file_prefix + '_wikipedia ' + Table_Fields)
 				wikidb.commit()
 				cursor.execute('insert into filebased_db.' + file_prefix + '_wikipedia select * from ' + file_prefix + '_wikipedia')
 				wikidb.commit()
-				sqlcommand = 'create index if not exists filebased_db.' + file_prefix + 'TITLE on ' + file_prefix + '_wikipedia(TITLE);'
-				cursor.execute(sqlcommand)
-				#sqlcommand = 'create view if not exists ' + file_prefix + '_wikipedia_view as select title, lat,lon,"("||wikipediaurl||"; "||url||"; Country/Region: "||Country||"/"||SubRegion||")" as comment,content from ' + file_prefix + '_wikipedia inner join wp_coords_red0 on wp_coords_red0.titel=' + file_prefix + '_wikipedia.title and lang="' + file_prefix +'";'
-				#cursor.execute(sqlcommand)
+				cursor.execute('create index if not exists filebased_db.' + file_prefix + 'TITLE on ' + file_prefix + '_wikipedia(TITLE);')
 				cursor.execute("detach database filebased_db")
 				wikidb.close() '''
 			print('\nTotal processed pages ' + str(totpagecounter + pagecounter) + '.')
@@ -380,15 +374,12 @@ if GENERATE_SQL == "YES":
 if CREATE_SQLITE == "YES":
 	cursor.execute('drop table '+file_prefix + '_externallinks')
 	cursor.execute("attach database '" + SQLITE_DATABASE + "' as filebased_db")
-	sqlcommand = 'drop table if exists filebased_db.' + file_prefix + '_wikipedia'
-	cursor.execute(sqlcommand)
-	sqlcommand = 'create table if not exists filebased_db.' + file_prefix + '_wikipedia ' + Table_Fields
-	cursor.execute(sqlcommand)
+	cursor.execute('drop table if exists filebased_db.' + file_prefix + '_wikipedia')
+	cursor.execute('create table if not exists filebased_db.' + file_prefix + '_wikipedia ' + Table_Fields)
 	wikidb.commit()
 	cursor.execute('insert into filebased_db.' + file_prefix + '_wikipedia select * from ' + file_prefix + '_wikipedia')
 	wikidb.commit()
-	sqlcommand = 'create index if not exists filebased_db.' + file_prefix + 'TITLE on ' + file_prefix + '_wikipedia(TITLE);'
-	cursor.execute(sqlcommand)
+	cursor.execute('create index if not exists filebased_db.' + file_prefix + 'TITLE on ' + file_prefix + '_wikipedia(TITLE);')
 	#sqlcommand = 'create view if not exists ' + file_prefix + '_wikipedia_view as select title, lat,lon,"("||wikipediaurl||"; "||url||"; Country/Region: "||Country||"/"||SubRegion||")" as comment,content from ' + file_prefix + '_wikipedia inner join wp_coords_red0 on wp_coords_red0.titel=' + file_prefix + '_wikipedia.title and lang="' + file_prefix +'";'
 	#cursor.execute(sqlcommand)
 	cursor.execute("detach database filebased_db")
