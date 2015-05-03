@@ -268,17 +268,17 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 	totpagecounter = 0
 	# We need to read line by line as we have massive files, sometimes multiple GBs
 	for line in single_wikifile:
-		# "heart beat check. Is this script still alife?
-		check_pulse = time.time()
-		if (check_pulse - heart_beat) > 600:   # 10 minutes -> 10*60 seconds
-			print('Heart beat at: '+str(datetime.datetime.now().replace(microsecond=0))+'. Script still alive.')
-			heart_beat = time.time()
 		# We need to add a \n to make the lines separate
 		raw_page_string += str(line).replace("b'","") + str('\n')
 		#print(str(line).encode('utf-8'))
 		if "</siteinfo>" in str(line):
 			raw_page_string = ""
 		elif "</page>" in str(line):
+			# "heart beat check. Is this script still alife?
+			check_pulse = time.time()
+			if (check_pulse - heart_beat) > 600:   # 10 minutes -> 10*60 seconds
+				print('Heart beat at: '+str(datetime.datetime.now().replace(microsecond=0))+'. Script still alive.')
+				heart_beat = time.time()
 			# And now we need to remove the \n' again. Obviously I'm doing something stupid
 			raw_page_string = raw_page_string.replace("\\n'","")
 			# We also use the title string in extlinkdata[0] as "test" string. 
