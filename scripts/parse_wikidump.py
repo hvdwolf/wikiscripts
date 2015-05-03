@@ -43,7 +43,7 @@ Table_Fields = "(TITLE TEXT, LATITUDE FLOAT, LONGITUDE FLOAT, REMARKS TEXT, CONT
 # The csv output can contain (many) duplicates. We don't want that. In our database we can easily remove duplicates and then write 
 # a csv from the database. 
 CREATE_SQLITE = "NO" # YES or NO
-SQLITE_DATABASE_PATH = '/cygdrive/d/wikiscripts/sqlite/'  # This needs to be a full qualified path
+SQLITE_DATABASE_PATH = '/cygdrive/d/wikiscripts/sqlite/'  # This needs to be a full qualified path ending with a /
 
 # English is our default code so we initiate everything as English
 LANGUAGE_CODE = 'en'
@@ -138,17 +138,6 @@ def parse_wiki_page(raw_page):
 			#page_string += line + '\n'
 			title_string = line
 			extlinkdata = [None] * 6 # Create a list with 6 "None"s including our title which stays empty until proven "linked" via externallinks
-			# Don't do the for row in linkrows. Running through 1000.000nds python tuples of tuples is terribly slow
-			# Just use an sql statement on externallinks from your language db
-			'''for row in linkrows:
-				if row[0] == title_string.replace("    <title>","").replace("</title>",""):
-					extlinkdata[0] = title_string.replace("    <title>","").replace("</title>","")
-					extlinkdata[1] = row[1]		# latitude
-					extlinkdata[2] = row[2]		# longitude
-					extlinkdata[3] = row[3]		# language
-					extlinkdata[4] = row[4]		# poitype
-					extlinkdata[5] = row[5]		# region
-					break   # Simply break out of the for loop. Not so elegant but effective '''
 			search_string = title_string.replace("    <title>","").replace("</title>","")
 			sqlcommand = 'select * from ' + file_prefix + '_externallinks where title="'+search_string+'"'
 			try:
@@ -341,26 +330,6 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 					pagecounter = 0
 					print('\nProcessed pages ' + str(totpagecounter) + '. Elapsed time: ' + str(datetime.datetime.now().replace(microsecond=0) - start_time))
 		elif "</mediawiki>" in str(line):
-			# Below block should be outside this if ... statement in case we encounter and EOF error or something like that.
-			'''if GENERATE_CSV == "YES" and GZIPPED_CVS == "YES":
-				#csv_file.close()
-				gzipped_csv.close()
-			if GENERATE_SQL == "YES":
-				sql_file.write('\n\ncreate index ' + file_prefix + 'TITLE on ' + file_prefix + '_wikipedia(TITLE);\n\n')
-				#sql_file.write('drop view if exists ' + file_prefix + '_wikipedia_view;\n')
-				#sql_file.write('create view if not exists ' + file_prefix + '_wikipedia_view as select title, lat,lon,"("||wikipediaurl||"; "||url||"; Country/Region: "||Country||"/"||SubRegion||")" as comment,content from ' + file_prefix + '_wikipedia inner join wp_coords_red0 on wp_coords_red0.titel=' + file_prefix + '_wikipedia.title and lang="' + file_prefix +'";\n')
-				sql_file.close()
-			if CREATE_SQLITE == "YES":
-				cursor.execute('drop table '+file_prefix + '_externallinks')
-				cursor.execute("attach database '" + SQLITE_DATABASE + "' as filebased_db")
-				cursor.execute('drop table if exists filebased_db.' + file_prefix + '_wikipedia')
-				cursor.execute('create table if not exists filebased_db.' + file_prefix + '_wikipedia ' + Table_Fields)
-				wikidb.commit()
-				cursor.execute('insert into filebased_db.' + file_prefix + '_wikipedia select * from ' + file_prefix + '_wikipedia')
-				wikidb.commit()
-				cursor.execute('create index if not exists filebased_db.' + file_prefix + 'TITLE on ' + file_prefix + '_wikipedia(TITLE);')
-				cursor.execute("detach database filebased_db")
-				wikidb.close() '''
 			print('\nTotal processed pages ' + str(totpagecounter + pagecounter) + '.')
 	#print('\n\nNow writing the ' + write_to_gpx_file + ' file')
 
