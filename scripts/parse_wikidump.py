@@ -22,7 +22,12 @@
 import os, sys, bz2, gzip, csv, re, time, datetime, sqlite3
 import wikifunctions
 
-reload(sys)  
+# First check on version
+if sys.version_info<(3,0,0):
+	reload(sys)  
+else:
+	import imp
+	imp.reload(sys)  
 sys.setdefaultencoding('utf8')
 
 ######################### Some global settings and Constants ####################
