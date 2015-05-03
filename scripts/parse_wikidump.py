@@ -49,7 +49,8 @@ SQLITE_DATABASE_PATH = '/cygdrive/d/wikiscripts/sqlite/'  # This needs to be a f
 LANGUAGE_CODE = 'en'
 ARTICLE_URL = "Article url: "
 WIKI_PAGE_URL = "Wikipedia: "
-# And in the function below we adapt
+# In the function below we set some language specific comments. This needs to be made a separate include file
+# so people can easily add their own language statement
 def language_specifics(lang_code):
 	global LANGUAGE_CODE
 	global ARTICLE_URL
@@ -100,7 +101,8 @@ def parse_wiki_page(raw_page):
 		if text_area == 1:
 			# We are in the text area part
 			# Check for some infobox info we don't want in the string but that we can use as "official" website for the wiki article
-			if ('| web' or '| website' or '| Website' or '| officiele_website =') in str(line).lower():
+			# Temporarily disable. Sometime you'll find strange web addresses
+			'''if ('| web' or '| website' or '| Website' or '| officiele_website =') in str(line).lower():
 				#print(str(line))
 				if '[http' in str(line).lower():
 					wadr = re.search('\[(.*) ', line)
@@ -116,7 +118,7 @@ def parse_wiki_page(raw_page):
 					wadr = re.search('=(.*)', line)
 					if wadr:
 						web_string = wadr.group(1)
-					#print(wadr.group(1))
+					#print(wadr.group(1)) '''
 			# Now check first whether we are in an infobox_area
 			if infobox_area == 1:
 				if '}}' in str(line):
@@ -168,7 +170,7 @@ def parse_wiki_page(raw_page):
 			text_area = 1
 			if '{{Infobox' in str(line):
 				infobox_area = 1
-	# And finally return our moderate page string
+	# Return our page info
 	return extlinkdata, text_string, web_string
 ## end of parse_wiki_page
 ###########################################################################
@@ -274,7 +276,7 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 		#print(str(line).encode('utf-8'))
 		if "</siteinfo>" in str(line):
 			raw_page_string = ""
-		if "</page>" in str(line):
+		elif "</page>" in str(line):
 			# And now we need to remove the \n' again. Obviously I'm doing something stupid
 			raw_page_string = raw_page_string.replace("\\n'","")
 			# We also use the title string in extlinkdata[0] as "test" string. 
@@ -337,7 +339,7 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 					totpagecounter += pagecounter
 					pagecounter = 0
 					print('\nProcessed pages ' + str(totpagecounter) + '. Elapsed time: ' + str(datetime.datetime.now().replace(microsecond=0) - start_time))
-		if "</mediawiki>" in str(line):
+		elif "</mediawiki>" in str(line):
 			# Below block should be outside this if ... statement in case we encounter and EOF error or something like that.
 			'''if GENERATE_CSV == "YES" and GZIPPED_CVS == "YES":
 				#csv_file.close()
