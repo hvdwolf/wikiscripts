@@ -14,13 +14,17 @@ _MEDIA_CAT = """
   [Ii]mage|[Cc]ategory      # English
  |[Aa]rchivo                # Spanish
  |[Ff]ile                   # English, Italian
- |[CcKk]at[ée]gor[íi][ea]   # Dutch, German, French, Italian, Spanish, Polish, Latin
+ |[CcKk]at[\u00E9e]gor[\u00EDi][ea]   # Dutch, German, French, Italian, Spanish, Polish, Latin
  |[Bb]estand                # Dutch
  |[Bb]ild                   # German
  |[Ff]icher                 # French
  |[Pp]lik                   # Polish
  |[Ff]asciculus             # Latin
 """
+# |[CcKk]at[ée]gor[íi][ea]   # Dutch, German, French, Italian, Spanish, Polish, Latin
+# 00E9 is é, 00ed is í
+
+
 #Unwanted
 #  | \&lt;ref .*?\> .*? \&quot; /\&gt;
 #  | \&lt;br.*? \&gt;

@@ -25,10 +25,11 @@ import wikifunctions
 # First check on version
 if sys.version_info<(3,0,0):
 	reload(sys)  
-else:
-	import imp
-	imp.reload(sys)  
-sys.setdefaultencoding('utf8')
+	sys.setdefaultencoding('utf8')
+#else:
+#	import imp
+#	imp.reload(sys)  
+#sys.setdefaultencoding('utf8')
 
 ######################### Some global settings and Constants ####################
 SCRIPT_VERSION = "0.1"
@@ -48,7 +49,7 @@ Table_Fields = "(TITLE TEXT, LATITUDE FLOAT, LONGITUDE FLOAT, REMARKS TEXT, CONT
 # The csv output can contain (many) duplicates. We don't want that. In our database we can easily remove duplicates and then write 
 # a csv from the database. 
 CREATE_SQLITE = "NO" # YES or NO
-SQLITE_DATABASE_PATH = '/cygdrive/d/wikiscripts/sqlite/'  # This needs to be a full qualified path ending with a /
+SQLITE_DATABASE_PATH = '/cygdrive/d/LocalData_387640/Datadir/Navigatie/wikiscripts/sqlite/'  # This needs to be a full qualified path ending with a /
 
 # English is our default code so we initiate everything as English
 LANGUAGE_CODE = 'en'
@@ -203,7 +204,7 @@ if GENERATE_CSV == "YES":
 		csv_file = csv.writer(gzipped_csv, delimiter=',',  quotechar='"', quoting=csv.QUOTE_ALL)
 	else:
 		write_to_csv_file = '../output/' + file_prefix + '_wikipedia.csv'
-		csv_file = csv.writer(open(write_to_csv_file, 'wb'), delimiter=',',  quotechar='"', quoting=csv.QUOTE_ALL)
+		csv_file = csv.writer(open(write_to_csv_file, 'wt'), delimiter=',',  quotechar='"', quoting=csv.QUOTE_ALL)
 	csv_file.writerow(CSV_HEADER)
 	print('parse_wikidump.py: writing to CSV file: '+ write_to_csv_file)
 # Generate SQL
