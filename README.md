@@ -16,11 +16,10 @@ These externallinks import will be the reference table for the sqlite database f
 Order of actions:
   - download, parse and import the \<language_code\>wiki-latest-externallinks.sql.gz  files into a \<language_code\>_wikipedia sqlite DB.
   - download wikipedia or wikivoyage database dumps.
-  - parse wikipedia or wikivoyage dumps and import "coordinates containing" articles into sqlite DB, based on externallinks table.
-  - export imported articles with coordinates to CSV files.
+  - parse wikipedia or wikivoyage dumps and create a csv file based on externallinks table (optionally import "coordinates containing" articles into sqlite DB).
+  - Clean csv files before further processing.
   
 
 
 The current goal of these scripts is to convert the created CSV files into MapFactor Navigator Free POI mca files to be used in Mapfactor Navigator Free. 
 This convert step and program (diggerQT/digger_console) is not part of this repository and not part of this GPL-2 license.
-Note: This repository temporarily also holds the created csv files and mca files in zip format in the tmp folder.
