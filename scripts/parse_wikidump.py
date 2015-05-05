@@ -17,6 +17,13 @@
 # Writing 183.966 pages with coordinates out of 2.626.774 pages of the Dutch wikipedia 
 # took 12 minutes versus 26 minutes (all on an I7-quadcore with an SSD disk)
 # Also: DO NOT forget to "set PYTHONIOENCODING='utf-8'" on windows or other non-utf-8 environments.
+#
+# Usage from the folder dumps where your wikipedia or wikivoyage dumps reside
+# $ python ../scripts/parse_wikidump.py wikipedia <language_code>
+# or
+# $ python ../scripts/parse_wikidump.py wikivoyage <language_code>
+#
+# example: $ python ../scripts/parse_wikidump.py wikipedia nl
 
 
 import os, sys, bz2, gzip, csv, re, time, datetime, sqlite3, logging
@@ -50,7 +57,7 @@ Table_Fields = "(TITLE TEXT, LATITUDE FLOAT, LONGITUDE FLOAT, REMARKS TEXT, CONT
 # The csv output can contain (many) duplicates. We don't want that. In our database we can easily remove duplicates and then write 
 # a csv from the database. 
 CREATE_SQLITE = "NO" # YES or NO
-SQLITE_DATABASE_PATH = '/cygdrive/d/LocalData_387640/Datadir/Navigatie/wikiscripts/sqlite/'  # This needs to be a full qualified path ending with a /
+SQLITE_DATABASE_PATH = '/cygdrive/c/Users/harryvanderwolf/Downloads/wikiscripts/sqlite/'  # This needs to be a full qualified path ending with a /
 
 # English is our default code so we initiate everything as English
 LANGUAGE_CODE = 'en'
@@ -89,6 +96,38 @@ def language_specifics(lang_code):
 		
 # Below this you should not have to set or change anything
 ###########################################################################
+def print_usage():
+	print("\n\n\tYou should run this script from inside the folder where your wikidumps are downloaded.")
+	print("\tThe default folder to run from according the setup of these scripts is \"dumps\".\n")
+	print("\tThis script expects the type of wikidump, like wikipedia or wikivoyage,")
+	print("\tand it expects a 2 character ISO-639-1 language_code.\n")
+	print("\tlike: $ python ../scripts/parse_wikidump.py <wikitype> <language_code>\n")
+	print("\tExamples:")
+	print("\t\t$ python ../scripts/parse_wikidump.py wikipedia nl")
+	print("\tor")
+	print("\t\t$ python ../scripts/parse_wikidump.py wikivoyage en\n\n")
+	sys.exit()
+
+def check_commandline_parameters(sys_argv_params):
+	#print(str(sys_argv_params))
+	wikitype = ""
+	language_code = ""
+	if len(sys_argv_params) > 2:
+		if str(sys_argv_params[1]) == "wikipedia":
+			wikitype = "_wikipedia"
+		elif str(sys_argv_params[1]) == "wikivoyage":
+			wikitype = "_wikivoyage"
+		else:
+			print_usage()
+		if len(sys_argv_params[2]) != 2:
+			print_usage()
+		else:
+			language_code = sys_argv_params[2]
+		#print(str(sys_argv_params[1]))
+		#list_of_files.append(str(sys_argv_params[1]) + 'wiki-latest-pages-articles.xml')
+	else:
+		print_usage
+	return wikitype, language_code
 
 
 		
@@ -154,23 +193,25 @@ def parse_wiki_page(raw_page):
 ###########################################################################
 
 
-# Start of main part
-if len(sys.argv) > 1:
-	#print(str(sys.argv[1]))
-	#list_of_files.append(str(sys.argv[1]) + 'wiki-latest-pages-articles.xml')
-	wikipedia_file = str(sys.argv[1]) + 'wiki-latest-pages-articles.xml.bz2'
-	# Check if the file exists
-	if not os.path.exists(wikipedia_file):
-		print("\n\nERROR:\n   The xml.bz2 file "+ wikipedia_file + " for the specified language: \"" + str(sys.argv[1]) + "\" does not exist!\n\n")
-		sys.exit()
-	#bz_wikipedia_file = bz2.BZ2File(str(sys.argv[1]) + 'wiki-latest-pages-articles.xml.bz2', 'rb')
+########### Start of main part ############
+# Check correct usage
+if len(sys.argv) > 2:
+	wiki_type, language_code = check_commandline_parameters(sys.argv)
 else:
-	print('No parameter given. You need to give the 2-character country code in lower case.')
+	print_usage()
+
+if wiki_type == "_wikipedia":
+	wikipedia_file = language_code + 'wiki-latest-pages-articles.xml.bz2'
+else:
+	wikipedia_file = language_code + 'wikivoyage-latest-pages-articles.xml.bz2'
+
+# Check if the file exists
+if not os.path.exists(wikipedia_file):
+	print("\n\nERROR:\n   The xml.bz2 file "+ wikipedia_file + " for the specified language: \"" + language_code + "\" does not exist!\n\n")
 	sys.exit()
-	
+
 # Set some language specific settings (global variables)
-file_prefix = str(sys.argv[1])
-language_specifics(wikipedia_file[:2])
+language_specifics(language_code)
 # Get the start time
 start_time = datetime.datetime.now().replace(microsecond=0)
 # heartbeat: check if script is not stuck
@@ -180,16 +221,16 @@ print('start time: ' + time.strftime("%Y-%m-%d %H:%M:%S") + '\n')
 print("Working on language: " + LANGUAGE_CODE)
 print('parse_wikidump.py: reading contents of: ' + wikipedia_file)
 # Create log file
-logging.basicConfig(filename='../logs/' + file_prefix + '_wikipedia.log',level=logging.DEBUG)
+logging.basicConfig(filename='../logs/' + language_code + wiki_type + '.log',level=logging.DEBUG)
 logging.info('start time: ' + time.strftime("%Y-%m-%d %H:%M:%S") + '\n')
 # Do we want a CSV file?
 if GENERATE_CSV == "YES":
 	if GZIPPED_CVS == "YES":
-		write_to_csv_file = '../output/' + file_prefix + '_wikipedia.csv.gz'
+		write_to_csv_file = '../output/' + language_code + wiki_type + '.csv.gz'
 		gzipped_csv = gzip.open(write_to_csv_file, 'wb')
 		csv_file = csv.writer(gzipped_csv, delimiter=',',  quotechar='"', quoting=csv.QUOTE_ALL)
 	else:
-		write_to_csv_file = '../output/' + file_prefix + '_wikipedia.csv'
+		write_to_csv_file = '../output/' + language_code + wiki_type + '.csv'
 		csv_file = csv.writer(open(write_to_csv_file, 'w'), delimiter=',',  quotechar='"', quoting=csv.QUOTE_ALL)
 	csv_file.writerow(CSV_HEADER)
 	print('parse_wikidump.py: writing to CSV file: '+ write_to_csv_file)
@@ -197,13 +238,13 @@ if GENERATE_CSV == "YES":
 # Generate SQL
 if GENERATE_SQL == "YES":
 	if GZIPPED_SQL == "YES":
-		write_to_sql_file = file_prefix + '_wikipedia.sql.gz'
+		write_to_sql_file = language_code + wiki_type + '.sql.gz'
 		sql_file = gzip.open(write_to_sql_file, 'wb')
 	else:
-		write_to_sql_file = file_prefix + '_wikipedia.sql'
+		write_to_sql_file = language_code + wiki_type + '.sql'
 		sql_file = open(write_to_sql_file, 'wb')
-	sql_file.write('drop table if exists ' + file_prefix + '_wikipedia;\n')
-	sql_file.write('create table ' + file_prefix + '_wikipedia ' + Table_Fields + ';\n\n')
+	sql_file.write('drop table if exists ' + language_code + wiki_type + ';\n')
+	sql_file.write('create table ' + language_code + wiki_type + ' ' + Table_Fields + ';\n\n')
 	print('parse_wikidump.py: writing to SQL file: '+ write_to_sql_file)
 	logging.info('parse_wikidump.py: writing to SQL file: '+ write_to_sql_file+'\n')
 # Directly connect to sqlite database
@@ -212,37 +253,37 @@ if GENERATE_SQL == "YES":
 # Create in memory database to speed up the process
 wikidb = sqlite3.connect(':memory:') # create a memory database
 cursor = wikidb.cursor()
-SQLITE_DATABASE = SQLITE_DATABASE_PATH + file_prefix + 'wikipedia.db'
+SQLITE_DATABASE = SQLITE_DATABASE_PATH + language_code + 'wikipedia.db'
 # Change to work in memory with the tables and write out at the end to disk
 #wikidb = sqlite3.connect(SQLITE_DATABASE)
 #cursor = wikidb.cursor()
-sqlcommand = 'drop table if exists ' + file_prefix + '_wikipedia'
+sqlcommand = 'drop table if exists ' + language_code + wiki_type + ''
 cursor.execute(sqlcommand)
-sqlcommand = 'create table if not exists ' + file_prefix + '_wikipedia ' + Table_Fields
+sqlcommand = 'create table if not exists ' + language_code + wiki_type + ' ' + Table_Fields
 cursor.execute(sqlcommand)
 wikidb.commit()
 # Now create in memory table <language_code>_externallinks.
 # Could be done shorter but this is more compatible through python versions
 cursor.execute("attach database '" + SQLITE_DATABASE + "' as filebased_db")
 #print("attach database '" + SQLITE_DATABASE + "' as filebased_db")
-cursor.execute("select sql from filebased_db.sqlite_master where type='table' and name='" + file_prefix + "_externallinks'")
-#print("select sql from filebased_db.sqlite_master where type='table' and name='" + file_prefix + "_externallinks'")
+cursor.execute("select sql from filebased_db.sqlite_master where type='table' and name='" + language_code + "_externallinks'")
+#print("select sql from filebased_db.sqlite_master where type='table' and name='" + language_code + "_externallinks'")
 sql_create_table = cursor.fetchone()[0]
 cursor.execute(sql_create_table);
-cursor.execute("insert into " + file_prefix + "_externallinks select * from filebased_db." + file_prefix + "_externallinks")
-cursor.execute('CREATE INDEX ' + file_prefix + 'externallinks_TITLE on ' + file_prefix + '_externallinks(TITLE)')
+cursor.execute("insert into " + language_code + "_externallinks select * from filebased_db." + language_code + "_externallinks")
+cursor.execute('CREATE INDEX ' + language_code + 'externallinks_TITLE on ' + language_code + '_externallinks(TITLE)')
 #print(str(cursor.execute('.schema')))
 # Now we detach the file based database and continue in memory
 cursor.execute("detach database filebased_db")
 wikidb.commit()
-#cursor.execute('select count(title) from ' + file_prefix + '_externallinks')
+#cursor.execute('select count(title) from ' + language_code + '_externallinks')
 #print(str(cursor.fetchone()))
-print('parse_wikidump.py: Created table ' + file_prefix + '_externallinks in memory')
-logging.info('parse_wikidump.py: Created table ' + file_prefix + '_externallinks in memory'+'\n')
+print('parse_wikidump.py: Created table ' + language_code + '_externallinks in memory')
+logging.info('parse_wikidump.py: Created table ' + language_code + '_externallinks in memory'+'\n')
 
 if CREATE_SQLITE == "YES":
-	print('parse_wikidump.py: inserting rows in table ' + file_prefix + '_wikipedia in in memory database ')
-	logging.info('parse_wikidump.py: inserting rows in table ' + file_prefix + '_wikipedia in in memory database.'+'\n')
+	print('parse_wikidump.py: inserting rows in table ' + language_code + wiki_type + ' in in memory database ')
+	logging.info('parse_wikidump.py: inserting rows in table ' + language_code + wiki_type + ' in in memory database.'+'\n')
 
 # Start reading from our wikipedia xml.bz2 file	
 with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
@@ -263,8 +304,8 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 			extlinkdata = [None] * 6 # Create a list with 6 "None"s including our title which stays empty until proven "linked" via externallinks
 			search_string = title_string[0].replace("    <title>","").replace("</title>","")
 			try:
-				cursor.execute('select * from ' + file_prefix + '_externallinks where title="'+search_string+'"')
-				#print('select * from ' + file_prefix + '_externallinks where title="'+search_string+'"')
+				cursor.execute('select * from ' + language_code + '_externallinks where title="'+search_string+'"')
+				#print('select * from ' + language_code + '_externallinks where title="'+search_string+'"')
 				row = cursor.fetchone()
 				#print(row)
 				if row[0] == search_string:
@@ -291,7 +332,7 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 			if extlinkdata[0] != "" and extlinkdata[0] != None:
 				#title_string = extlinkdata[0].replace("    <title>","").replace("</title>","")
 				title_string = extlinkdata[0]
-				print('Matching ' + file_prefix + ' title: '+title_string)
+				print('Matching ' + language_code + ' title: '+title_string)
 				wikipediaurl = WIKI_PAGE_URL + 'http://' + LANGUAGE_CODE + '.wikipedia.org/wiki/' + title_string.replace(" ","_")
 				latitude = extlinkdata[1]
 				longitude = extlinkdata[2]
@@ -322,10 +363,10 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 				if GENERATE_CSV == "YES":
 					csv_file.writerow([title_string, latitude, longitude, remarks, text_string])
 				if GENERATE_SQL == "YES":
-					sql_file.write('insert into ' + file_prefix + '_wikipedia (TITLE, LATITUDE, LONGITUDE, REMARKS, CONTENT) values ("' + title_string + '","' + str(latitude) + '","' + str(longitude) + '","' + remarks + '","' + text_string + '");\n')
+					sql_file.write('insert into ' + language_code + wiki_type + ' (TITLE, LATITUDE, LONGITUDE, REMARKS, CONTENT) values ("' + title_string + '","' + str(latitude) + '","' + str(longitude) + '","' + remarks + '","' + text_string + '");\n')
 				if CREATE_SQLITE == "YES":
 					#print(sqlcommand)
-					cursor.execute('insert into ' + file_prefix + '_wikipedia (TITLE, LATITUDE, LONGITUDE, REMARKS, CONTENT) values ("' + title_string + '","' + str(latitude) + '","' + str(longitude) + '","' + remarks + '","' + text_string + '");')
+					cursor.execute('insert into ' + language_code + wiki_type + ' (TITLE, LATITUDE, LONGITUDE, REMARKS, CONTENT) values ("' + title_string + '","' + str(latitude) + '","' + str(longitude) + '","' + remarks + '","' + text_string + '");')
 					# For testing we want immediate commits
 					#wikidb.commit()
 				pagecounter += 1
@@ -350,17 +391,17 @@ if GENERATE_CSV == "YES" and GZIPPED_CVS == "YES":
 	#csv_file.close()
 	gzipped_csv.close()
 if GENERATE_SQL == "YES":
-	sql_file.write('\n\ncreate index ' + file_prefix + 'TITLE on ' + file_prefix + '_wikipedia(TITLE);\n\n')
+	sql_file.write('\n\ncreate index ' + language_code + 'TITLE on ' + language_code + wiki_type + '(TITLE);\n\n')
 	sql_file.close()
 if CREATE_SQLITE == "YES":
-	cursor.execute('drop table '+file_prefix + '_externallinks')
+	cursor.execute('drop table '+language_code + '_externallinks')
 	cursor.execute("attach database '" + SQLITE_DATABASE + "' as filebased_db")
-	cursor.execute('drop table if exists filebased_db.' + file_prefix + '_wikipedia')
-	cursor.execute('create table if not exists filebased_db.' + file_prefix + '_wikipedia ' + Table_Fields)
+	cursor.execute('drop table if exists filebased_db.' + language_code + wiki_type + '')
+	cursor.execute('create table if not exists filebased_db.' + language_code + wiki_type + ' ' + Table_Fields)
 	wikidb.commit()
-	cursor.execute('insert into filebased_db.' + file_prefix + '_wikipedia select * from ' + file_prefix + '_wikipedia')
+	cursor.execute('insert into filebased_db.' + language_code + wiki_type + ' select * from ' + language_code + wiki_type + '')
 	wikidb.commit()
-	cursor.execute('create index if not exists filebased_db.' + file_prefix + 'TITLE on ' + file_prefix + '_wikipedia(TITLE);')
+	cursor.execute('create index if not exists filebased_db.' + language_code + 'TITLE on ' + language_code + wiki_type + '(TITLE);')
 	cursor.execute("detach database filebased_db")
 	wikidb.close()
 	

@@ -10,5 +10,5 @@ languages="de el en es fa fr he it nl pl pt ro ru sv uk vi zh"
 for language in $languages
 do
 	printf "Downloading language $language\n\n"
-	python ../scripts/wikivoyagedownloader.py $language
+	wget -c http://dumps.wikimedia.org/${language}wikivoyage/latest/${language}wikivoyage-latest-pages-articles.xml.bz2
 done

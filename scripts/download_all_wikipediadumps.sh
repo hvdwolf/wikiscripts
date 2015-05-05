@@ -8,5 +8,5 @@ languages="ar ca cs da de el en eo es et eu fa fi fr gl he hi hr hu it ja ko lt 
 for language in $languages
 do
 	printf "Downloading language $language\n\n"
-	python wikimediadownloader.py $language
+	wget -c http://dumps.wikimedia.org/${language}wiki/latest/${language}wiki-latest-pages-articles.xml.bz2
 done
