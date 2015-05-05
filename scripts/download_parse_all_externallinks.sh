@@ -8,7 +8,7 @@ languages="ar ca cs da de el en eo es et eu fa fi fr gl he hi hr hu it ja ko lt 
 for language in $languages
 do
         printf "Downloading language $language\n\n"
-	wget -c http://dumps.wikimedia.org/${language}wiki/latest/${language}wiki-latest-pages-articles.xml.bz2
+	wget -c http://dumps.wikimedia.org/${language}wiki/latest/${language}wiki-latest-externallinks.sql.gz
 	printf "Done downloading $language."
 	python ../scripts/externallinks.py $language
 	rm ${language}wiki-latest-externallinks.sql.gz
