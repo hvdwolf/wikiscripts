@@ -49,6 +49,9 @@ GENERATE_CSV = "YES" # YES or NO
 GZIPPED_CVS = "NO" # YES or NO
 CSV_HEADER = ['NAME','LATITUDE','LONGITUDE','REMARKS','CONTENT']
 
+GENERATE_OSM = "YES" # YES or NO
+OSM_HEADER = "<?xml version='1.0' encoding='UTF-8'?>\n<osm version='0.5' generator='dump_parse_wiki-" + SCRIPT_VERSION + ">\n"
+
 GENERATE_SQL = "NO" # YES or NO
 GZIPPED_SQL = "YES" # YES or NO
 Table_Fields = "(TITLE TEXT, LATITUDE FLOAT, LONGITUDE FLOAT, REMARKS TEXT, CONTENT TEXT)"
@@ -235,6 +238,15 @@ if GENERATE_CSV == "YES":
 	csv_file.writerow(CSV_HEADER)
 	print('parse_wikidump.py: writing to CSV file: '+ write_to_csv_file)
 	logging.info('parse_wikidump.py: writing to CSV file: '+ write_to_csv_file+'\n')
+# Do we want an OSM file?
+if GENERATE_OSM == "YES":
+	node_counter = 0
+	write_to_osm_file = '../output/' + language_code + wiki_type + '.osm'
+	osm_file = open(write_to_osm_file, 'w')
+	osm_file.write(OSM_HEADER)
+	osm_file.close()
+	print('full_wikidump.py: also writing to OSM file: '+ write_to_osm_file)
+	osm_file = open(write_to_osm_file, 'a')	
 # Generate SQL
 if GENERATE_SQL == "YES":
 	if GZIPPED_SQL == "YES":
@@ -328,8 +340,8 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 				heart_beat = time.time()
 			if Match == 1:
 				text_string,web_string = parse_wiki_page(raw_page_string)
-			# No do the final test 
-			if extlinkdata[0] != "" and extlinkdata[0] != None:
+			# No do the final test: We need a title and a not-empty text
+			if extlinkdata[0] != "" and extlinkdata[0] != None and text_string != "" and text_string != None:
 				#title_string = extlinkdata[0].replace("    <title>","").replace("</title>","")
 				title_string = extlinkdata[0]
 				print('Matching ' + language_code + ' title: '+title_string)
@@ -362,6 +374,14 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 				#print(remarks)
 				if GENERATE_CSV == "YES":
 					csv_file.writerow([title_string, latitude, longitude, remarks, text_string])
+				if GENERATE_OSM == "YES":
+					node_counter += 1
+					osm_file.write("<node id='" + str(node_counter) + "1' visible='true' lat='" + str(latitude) + "' lon='" + str(longitude) + "'>\n")
+					osm_file.write("  <tag k='tourism' v='user'/>\n")
+					osm_file.write("  <tag k='name' v='" + str(title_string) + "'/>\n")
+					if str(web_string) != "":
+						osm_file.write("  <tag k='website' v='" + str(web_string) + "'/>\n")
+					osm_file.write("  <tag k='note' v='" + text_string + "'/>\n</node>\n")
 				if GENERATE_SQL == "YES":
 					sql_file.write('insert into ' + language_code + wiki_type + ' (TITLE, LATITUDE, LONGITUDE, REMARKS, CONTENT) values ("' + title_string + '","' + str(latitude) + '","' + str(longitude) + '","' + remarks + '","' + text_string + '");\n')
 				if CREATE_SQLITE == "YES":
@@ -390,6 +410,8 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 if GENERATE_CSV == "YES" and GZIPPED_CVS == "YES":
 	#csv_file.close()
 	gzipped_csv.close()
+if GENERATE_OSM == "YES":
+	osm_file.close()
 if GENERATE_SQL == "YES":
 	sql_file.write('\n\ncreate index ' + language_code + 'TITLE on ' + language_code + wiki_type + '(TITLE);\n\n')
 	sql_file.close()
