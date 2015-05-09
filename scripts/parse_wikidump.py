@@ -28,23 +28,22 @@
 
 import os, sys, bz2, gzip, csv, re, time, datetime, sqlite3, logging
 import wikifunctions
-
 # First check on version
 if sys.version_info<(3,0,0):
+	from urllib import unquote
 	reload(sys)  
 	sys.setdefaultencoding('utf8')
-#else:
-#	import unicodedata
-#	import imp
-#	imp.reload(sys)  
-#sys.setdefaultencoding('utf8')
+else:
+	from urllib.parse import unquote
+
+
 
 ######################### Some global settings and Constants ####################
 SCRIPT_VERSION = "0.1"
 # Set maximal characters for the text
 MAX_CHARACTERS = 600
 # What to generate
-GENERATE_GPX = "YES"
+GENERATE_GPX = "NO"
 GPX_HEADER = '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.0" creator="dump_parse_wiki-' + SCRIPT_VERSION +'" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.topografix.com/GPX/1/0"   xsi:schemaLocation="http://www.topografix.com/GPX/1/0 http://www.topografix.com/GPX/1/0/gpx.xsd">\n'
 
 # Write a CSV
@@ -52,7 +51,7 @@ GENERATE_CSV = "YES" # YES or NO
 GZIPPED_CVS = "NO" # YES or NO
 CSV_HEADER = ['NAME','LATITUDE','LONGITUDE','REMARKS','CONTENT']
 
-GENERATE_OSM = "YES" # YES or NO
+GENERATE_OSM = "NO" # YES or NO
 OSM_HEADER = "<?xml version='1.0' encoding='UTF-8'?>\n<osm version='0.5' generator='dump_parse_wiki-" + SCRIPT_VERSION + ">\n"
 
 GENERATE_SQL = "NO" # YES or NO
@@ -318,10 +317,14 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 	extlinkdata = []
 	# We need to read line by line as we have massive files, sometimes multiple GBs
 	for line in single_wikifile:
-		raw_page_string += str(line)
-		if "</siteinfo>" in str(line):
+		if sys.version_info<(3,0,0):
+			line = unicode(line, 'utf-8')
+		else:
+			line = line.decode("utf-8")
+		raw_page_string += line
+		if "</siteinfo>" in line:
 			raw_page_string = ""
-		elif "<title>" in str(line):
+		elif "<title>" in line:
 			Match = 0
 			title_string = line.splitlines()
 			extlinkdata = [None] * 6 # Create a list with 6 "None"s including our title which stays empty until proven "linked" via externallinks
@@ -364,15 +367,14 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 				region = extlinkdata[5]
 				if web_string != "":
 					web_string = ARTICLE_URL + web_string
-				# Below unicode does not work for csv
-				#text_string = unicode(text_string, encoding='utf-8')
 				text_string = wikifunctions.text_only(text_string)
 				#limit to max "MAX_CHARACTERS" chars, remove leading \n and remove pipe/more separators
 				text_string = text_string[:MAX_CHARACTERS].replace('\\n"','',1).replace('|','')
-				# This might cut our sting in the middle of a sentence. We don't want that
+				# This might cut our string in the middle of a sentence. We don't want that
 				# Find last full stop (period in English)
 				p = text_string.rfind(".")
-				text_string = text_string[:p+1]
+				# Get also rid of the percent encoded strings
+				text_string = unquote(text_string[:p+1])
 				remarks = '('+wikipediaurl
 				#temporarily remove web_string. It contains all kind of links. I need to improve on this before using it
 				#if web_string != "":
@@ -382,7 +384,9 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 				if region != "" and region != None:
 					remarks += ' ; Country_Region: '+region
 				remarks += ')'
-				#print(remarks)
+				# Get rid of the percent encoded strings
+				title_string = unquote(title_string)
+				remarks = unquote(remarks)
 				if GENERATE_GPX == "YES":
 					gpx_file.write('<wpt lat="' + str(latitude) + '" lon="' + str(longitude) + '">\n')
 					gpx_file.write('  <name>' + title_string + '</name>\n')
@@ -394,24 +398,21 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 					node_counter += 1
 					osm_file.write("<node id='" + str(node_counter) + "1' visible='true' lat='" + str(latitude) + "' lon='" + str(longitude) + "'>\n")
 					osm_file.write("  <tag k='tourism' v='user'/>\n")
-					osm_file.write("  <tag k='name' v='" + str(title_string) + "'/>\n")
+					osm_file.write("  <tag k='name' v='" + title_string + "'/>\n")
 					#if str(web_string) != "":
 					#	osm_file.write("  <tag k='website' v='" + str(web_string) + "'/>\n")
 					osm_file.write("  <tag k='note' v='" + remarks + ' ' + text_string + "'/>\n</node>\n")
 				if GENERATE_SQL == "YES":
 					sql_file.write('insert into ' + language_code + wiki_type + ' (TITLE, LATITUDE, LONGITUDE, REMARKS, CONTENT) values ("' + title_string + '","' + str(latitude) + '","' + str(longitude) + '","' + remarks + '","' + text_string + '");\n')
 				if CREATE_SQLITE == "YES":
-					#print(sqlcommand)
 					cursor.execute('insert into ' + language_code + wiki_type + ' (TITLE, LATITUDE, LONGITUDE, REMARKS, CONTENT) values ("' + title_string + '","' + str(latitude) + '","' + str(longitude) + '","' + remarks + '","' + text_string + '");')
 					# For testing we want immediate commits
 					#wikidb.commit()
 				pagecounter += 1
 				raw_page_string = ""
-				#page_string = ""
-				#pagecounter += 1
 				if pagecounter == 2500:
 					if CREATE_SQLITE == "YES":
-						# Do a databse commit every 2500 rows
+						# Do a database commit every 2500 rows
 						wikidb.commit()
 					totpagecounter += pagecounter
 					pagecounter = 0
@@ -427,7 +428,6 @@ if GENERATE_GPX == "YES":
 	gpx_file.write('</gpx>')
 	gpx_file.close()
 if GENERATE_CSV == "YES" and GZIPPED_CVS == "YES":
-	#csv_file.close()
 	gzipped_csv.close()
 if GENERATE_OSM == "YES":
 	osm_file.close()

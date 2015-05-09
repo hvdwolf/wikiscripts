@@ -21,16 +21,19 @@
 
 import os, sys, gzip, re, time, datetime, sqlite3
 import wikifunctions
-
+if sys.version_info<(3,0,0):
+	from urllib import unquote
+else:
+	from urllib.parse import unquote
 
 ######################### Some global settings and Constants ####################
 SCRIPT_VERSION = "0.1"
-# Whether to generate GPX, CSV and OSM files
+# Whether to generate an SQL file
 GENERATE_SQL = "NO" # YES or NO
-GZIPPED_SQL = "YES" # YES or NO
-#Table_Fields = "(el_id int, el_from int, el_from_namespace int, el_to text, el_index text)"
+GZIPPED_SQL = "NO" # YES or NO
 Table_Fields = "(Title text, latitude float, longitude float, language text, poitype text, region text)"
 
+# Directly store in sqlite database
 CREATE_SQLITE = "YES" # YES or NO
 SQLITE_DATABASE_PATH = '/cygdrive/d/wikiscripts/sqlite/wikipedia'  # This needs to be a full qualified path
 
@@ -47,9 +50,9 @@ def get_coordinates_type_region(params_list):
 	#print(str(params_list))
 	# See if we have poi types and regions
 	for item in params_list:
-		if str(item).startswith("type:"):
+		if item.startswith("type:"):
 			poitype = item.replace("type:","")
-		elif str(item).startswith("region:"):
+		elif item.startswith("region:"):
 			region = item.replace("region:","")
 	# Now try to get the coordinates
 	# Note that the last item before the N, S, E, W can be a "float" but having a "," instead of a "."
@@ -138,7 +141,6 @@ if len(sys.argv) > 1:
 	if not os.path.exists(externallinks_file):
 		print("\n\nERROR:\n   The sql.gz file "+ externallinks_file + " for the specified language: \"" + str(sys.argv[1]) + "\" does not exist!\n\n")
 		sys.exit()
-	#bz_externallinks_file = bz2.BZ2File(str(sys.argv[1]) + 'wikivoyage-latest-pages-articles.xml.bz2', 'rb')
 else:
 	print('No parameter given. You need to give the 2-character country code in lower case.')
 	sys.exit()
@@ -156,14 +158,20 @@ print('externallinks.py: reading contents of: ' + externallinks_file)
 if GENERATE_SQL == "YES":
 	if GZIPPED_SQL == "YES":
 		write_to_sql_file = file_prefix + '_externallinks.sql.gz'
-		sql_file = gzip.open(write_to_sql_file, 'wb')
+		if sys.version_info<(3,0,0):
+			sql_file = gzip.open(write_to_sql_file, 'wt')
+		else:
+			sql_file = gzip.open(write_to_sql_file, 'w+',encoding='utf-8')
 	else:
 		write_to_sql_file = file_prefix + '_externallinks.sql'
-		sql_file = open(write_to_sql_file, 'wb')
+		if sys.version_info<(3,0,0):
+			sql_file = open(write_to_sql_file, 'wt')
+		else:
+			sql_file = open(write_to_sql_file, 'w+',encoding='utf-8')
 	sql_file.write('drop table if exists ' + file_prefix + '_externallinks;\n')
 	sql_file.write('create table ' + file_prefix + '_externallinks ' + Table_Fields + ';\n\n')
 	print('externallinks.py: writing to SQL file: '+ write_to_sql_file)
-# Directly conect to sqlite database
+# Directly connect to sqlite database
 if CREATE_SQLITE == "YES":
 	SQLITE_DATABASE = SQLITE_DATABASE_PATH + file_prefix + 'wikipedia.db'
 	wikidb = sqlite3.connect(SQLITE_DATABASE)
@@ -174,17 +182,19 @@ if CREATE_SQLITE == "YES":
 	cursor.execute(sqlcommand)
 	wikidb.commit()
 	print('externallinks.py: inserting rows for table ' + file_prefix + '_externallinks in database ' + SQLITE_DATABASE)
-	#print(sqlcommand)
 
-#with codecs.open(externallinks_file, 'r', 'utf-8') as single_externallinksfile:
-with gzip.open(externallinks_file, 'rb') as single_externallinksfile:
+with gzip.open(externallinks_file, 'r') as single_externallinksfile:
 	linecounter = 0
 	totlinecounter = 0
 	filelinecounter = 0
 	# We need to read line by line as we have massive files, sometimes multiple GBs
 	for line in single_externallinksfile:
-		if "INSERT INTO" in str(line):
-			insert_statements = str(line).split("),(")
+		if sys.version_info<(3,0,0):
+			line = unicode(line, 'utf-8')
+		else:
+			line = line.decode("utf-8")
+		if "INSERT INTO" in line:
+			insert_statements = line.split("),(")
 			for statement in insert_statements:
 				filelinecounter += 1
 				#if ("geohack.php?" in statement) and (("pagename" in statement) or ("src=" in statement)): 
@@ -194,32 +204,30 @@ with gzip.open(externallinks_file, 'rb') as single_externallinksfile:
 					region = ""
 					poitype = ""
 					content = re.findall(r'.*?pagename=(.*?)\'\,\'',statement,flags=re.IGNORECASE)
-					#print(content[0])
 					if len(content) > 0: # We even need this check due to corrupted lines
 						splitcontent = content[0].split("&")
-						#print(str(splitcontent))
 						title = splitcontent[0]
+						#title = title.decode('utf8')
 						for subcontent in splitcontent:
 							if "language=" in subcontent:
 								language = subcontent.replace("language=","")
 								#print('taal is: ' + language)
 							if "params=" in subcontent:
 								params_string = subcontent.replace("params=","").split("_")
-								#print('coordinaten + '+str(params_string))
 								latitude,longitude,poitype,region = get_coordinates_type_region(params_string)
-								#print('params string: ' + str(coordinates))
-						#print('titel: ' + title + '; taal: ' + language + '; latitude: '+str(latitude)+'; longitude: '+str(longitude)+'; regio: '+region+'; type: '+poitype+'\n')
 						if ( str(latitude) != "" and str(longitude) != "" and  (str(latitude) != "0") or (str(longitude) != "0")):
 							if GENERATE_SQL == "YES":
-								sql_file.write('insert into ' + file_prefix + '_externallinks values ("' + title + '","' + str(latitude) + '","' + str(longitude) + '","' + language + '","' + poitype + '","' + region + '");\n')
+								sql_file.write('insert into ' + file_prefix + '_externallinks values ("' + unquote(title) + '","' + str(latitude) + '","' + str(longitude) + '","' + language + '","' + poitype + '","' + region + '");\n')
 							if CREATE_SQLITE == "YES":
-								sqlcommand = 'insert into ' + file_prefix + '_externallinks values ("' + title + '","' + str(latitude) + '","' + str(longitude) + '","' + language + '","' + poitype + '","' + region +'");'
-								#print(sqlcommand)
-								cursor.execute(sqlcommand)
+								try:  #Sometimes we run into some weird unicode title that sqlite really can't process
+									sqlcommand = 'insert into ' + file_prefix + '_externallinks values ("' + unquote(title) + '","' + str(latitude) + '","' + str(longitude) + '","' + language + '","' + poitype + '","' + region +'");'
+									cursor.execute(sqlcommand)
+								except:
+									pass
 							linecounter += 1
 							if linecounter == 10000:
 								if CREATE_SQLITE == "YES":
-									# Do a databse commit every 10000 rows
+									# Do a database commit every 10000 rows
 									wikidb.commit()
 								totlinecounter += linecounter
 								linecounter = 0
