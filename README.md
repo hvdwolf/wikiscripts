@@ -19,7 +19,7 @@ Order of actions:
   - parse wikipedia or wikivoyage dumps and create a csv file based on externallinks table (optionally import "coordinates containing" articles into sqlite DB).
   - Clean csv files before further processing.
   
+The script outputs (can output) csv, gpx, osm and sql output so you can use the output in multiple tools to create POI files.
 
-
-The current goal of these scripts is to convert the created CSV files into MapFactor Navigator Free POI mca files to be used in Mapfactor Navigator Free. 
+The current goal (my goal) of these scripts is to convert the created CSV files into MapFactor Navigator Free POI mca files to be used in Mapfactor Navigator Free. 
 This convert step and program (diggerQT/digger_console) is not part of this repository and not part of this GPL-2 license.
