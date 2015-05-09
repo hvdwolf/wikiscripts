@@ -3,7 +3,8 @@
 # bash file to download and parse all available external links dumps
 # version 0.2, Harry van der Wolf, 20150505
 
-languages="ar ca cs da de el en eo es et eu fa fi fr gl he hi hr hu it ja ko lt ms nl nn no pl pt ro ru simple sk sl sr sv te tr uk vi vo zh"
+# All 100.000+ article languages
+languages="ar bg ca cs da de el en eo es et eu fa fi fr gl he hi hr hu hy id it ja kk ko la lt ms nl nn no pl pt ro ru sh simple sk sl sr sv te tr uk uz vi vo zh"
 
 for language in $languages
 do
