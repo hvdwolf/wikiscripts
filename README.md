@@ -9,17 +9,17 @@ SQLite is used as cross-platform, super simple database to hold the "intermediat
 
 It all starts with the \<language_code\>wiki-latest-externallinks.sql.gz dumps.
 The externallinks is a huge sql script containing all links for all pages for that specific language.
-Some of those inserts are “geohack” inserts statements containing the geographic coordinates of the articles. We need those coordinates and only those links are imported and the coordinates, which we need for our articles, are extracted.  
-These externallinks import will be the reference table for the sqlite database for the wikiepdia and wikivoyage articles.
+Some of those inserts are “geohack” insert statements containing the geographic coordinates (and title) of the articles. We need those coordinates. Only the links with those coordinates are imported, as we need the title and coordinates to match agains the articles which we extract from the dumps.  
+In other words: These externallinks imports will be the reference tables for the sqlite database for the wikipedia and wikivoyage articles.
 
 
 Order of actions:
   - download, parse and import the \<language_code\>wiki-latest-externallinks.sql.gz  files into a \<language_code\>_wikipedia sqlite DB.
   - download wikipedia or wikivoyage database dumps.
-  - parse wikipedia or wikivoyage dumps and create a csv file based on externallinks table (optionally import "coordinates containing" articles into sqlite DB).
+  - parse wikipedia or wikivoyage dumps and create a csv and/or gpx and/or osm and/or sql file based on externallinks table (optionally import "coordinates containing" articles into sqlite DB).
   - Clean csv files before further processing.
   
-The script writes (can write) csv, gpx, osm and sql output so you can use the output in multiple tools to create POI files.
+The script writes (can write) csv, gpx, osm and sql output so you can use the output in multiple tools to create POI files for a great number of open source, closed source or commercial apps.
 
 The current goal (my goal) of these scripts is to convert the created CSV files into MapFactor Navigator Free POI mca files to be used in Mapfactor Navigator Free. 
 This convert step and program (diggerQT/digger_console) is not part of this repository and not part of this GPL-2 license.
