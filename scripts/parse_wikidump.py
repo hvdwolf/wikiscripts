@@ -44,7 +44,10 @@ SCRIPT_VERSION = "0.1"
 # Set maximal characters for the text
 MAX_CHARACTERS = 600
 # What to generate
-# Do not only write csv. the csv export can contain (many) duplicates. Always go for sqlite and write to csv as backup.
+GENERATE_GPX = "YES"
+GPX_HEADER = '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.0" creator="dump_parse_wiki-' + SCRIPT_VERSION +'" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.topografix.com/GPX/1/0"   xsi:schemaLocation="http://www.topografix.com/GPX/1/0 http://www.topografix.com/GPX/1/0/gpx.xsd">\n'
+
+# Write a CSV
 GENERATE_CSV = "YES" # YES or NO
 GZIPPED_CVS = "NO" # YES or NO
 CSV_HEADER = ['NAME','LATITUDE','LONGITUDE','REMARKS','CONTENT']
@@ -226,11 +229,19 @@ print('parse_wikidump.py: reading contents of: ' + wikipedia_file)
 # Create log file
 logging.basicConfig(filename='../logs/' + language_code + wiki_type + '.log',level=logging.DEBUG)
 logging.info('start time: ' + time.strftime("%Y-%m-%d %H:%M:%S") + '\n')
+# Do we want a GPX file?
+if GENERATE_GPX == "YES":
+	write_to_gpx_file = '../output/' + language_code + wiki_type + '.gpx'
+	print('parse_wikidump.py: writing to GPX file: '+ write_to_gpx_file)
+	gpx_file = open(write_to_gpx_file, 'w')
+	gpx_file.write(GPX_HEADER)
+	gpx_file.close()
+	gpx_file = open(write_to_gpx_file, 'a')
 # Do we want a CSV file?
 if GENERATE_CSV == "YES":
 	if GZIPPED_CVS == "YES":
 		write_to_csv_file = '../output/' + language_code + wiki_type + '.csv.gz'
-		gzipped_csv = gzip.open(write_to_csv_file, 'wb')
+		gzipped_csv = gzip.open(write_to_csv_file, 'w')
 		csv_file = csv.writer(gzipped_csv, delimiter=',',  quotechar='"', quoting=csv.QUOTE_ALL)
 	else:
 		write_to_csv_file = '../output/' + language_code + wiki_type + '.csv'
@@ -245,7 +256,7 @@ if GENERATE_OSM == "YES":
 	osm_file = open(write_to_osm_file, 'w')
 	osm_file.write(OSM_HEADER)
 	osm_file.close()
-	print('full_wikidump.py: also writing to OSM file: '+ write_to_osm_file)
+	print('parse_wikidump.py: also writing to OSM file: '+ write_to_osm_file)
 	osm_file = open(write_to_osm_file, 'a')	
 # Generate SQL
 if GENERATE_SQL == "YES":
@@ -372,6 +383,11 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 					remarks += ' ; Country_Region: '+region
 				remarks += ')'
 				#print(remarks)
+				if GENERATE_GPX == "YES":
+					gpx_file.write('<wpt lat="' + str(latitude) + '" lon="' + str(longitude) + '">\n')
+					gpx_file.write('  <name>' + title_string + '</name>\n')
+					gpx_file.write('  <desc>' + remarks +' ' + text_string + '</desc>\n')
+					gpx_file.write('</wpt>\n')
 				if GENERATE_CSV == "YES":
 					csv_file.writerow([title_string, latitude, longitude, remarks, text_string])
 				if GENERATE_OSM == "YES":
@@ -379,9 +395,9 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 					osm_file.write("<node id='" + str(node_counter) + "1' visible='true' lat='" + str(latitude) + "' lon='" + str(longitude) + "'>\n")
 					osm_file.write("  <tag k='tourism' v='user'/>\n")
 					osm_file.write("  <tag k='name' v='" + str(title_string) + "'/>\n")
-					if str(web_string) != "":
-						osm_file.write("  <tag k='website' v='" + str(web_string) + "'/>\n")
-					osm_file.write("  <tag k='note' v='" + text_string + "'/>\n</node>\n")
+					#if str(web_string) != "":
+					#	osm_file.write("  <tag k='website' v='" + str(web_string) + "'/>\n")
+					osm_file.write("  <tag k='note' v='" + remarks + ' ' + text_string + "'/>\n</node>\n")
 				if GENERATE_SQL == "YES":
 					sql_file.write('insert into ' + language_code + wiki_type + ' (TITLE, LATITUDE, LONGITUDE, REMARKS, CONTENT) values ("' + title_string + '","' + str(latitude) + '","' + str(longitude) + '","' + remarks + '","' + text_string + '");\n')
 				if CREATE_SQLITE == "YES":
@@ -407,6 +423,9 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 	#print('\n\nNow writing the ' + write_to_gpx_file + ' file')
 
 # Close everything nicely, whether we have a corrupt bzip, EOF error or whatever issue
+if GENERATE_GPX == "YES":
+	gpx_file.write('</gpx>')
+	gpx_file.close()
 if GENERATE_CSV == "YES" and GZIPPED_CVS == "YES":
 	#csv_file.close()
 	gzipped_csv.close()
