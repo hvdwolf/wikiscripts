@@ -62,7 +62,7 @@ Table_Fields = "(TITLE TEXT, LATITUDE FLOAT, LONGITUDE FLOAT, REMARKS TEXT, CONT
 # The csv output can contain (many) duplicates. We don't want that. In our database we can easily remove duplicates and then write 
 # a csv from the database. 
 CREATE_SQLITE = "NO" # YES or NO
-SQLITE_DATABASE_PATH = '/cygdrive/c/Users/harryvanderwolf/Downloads/wikiscripts/sqlite/'  # This needs to be a full qualified path ending with a /
+SQLITE_DATABASE_PATH = '/opt/wikiscripts/sqlite/'  # This needs to be a full qualified path ending with a /
 
 # English is our default code so we initiate everything as English
 LANGUAGE_CODE = 'en'
