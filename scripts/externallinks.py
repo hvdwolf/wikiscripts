@@ -35,7 +35,7 @@ Table_Fields = "(Title text, latitude float, longitude float, language text, poi
 
 # Directly store in sqlite database
 CREATE_SQLITE = "YES" # YES or NO
-SQLITE_DATABASE_PATH = '/cygdrive/d/wikiscripts/sqlite/wikipedia'  # This needs to be a full qualified path
+SQLITE_DATABASE_PATH = '/opt/wikiscripts/sqlite/'  # This needs to be a full qualified path
 
 		
 		
