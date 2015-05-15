@@ -8,7 +8,6 @@
 # Note: wikipedia works per language!, not per country. 
 # See http://en.wikipedia.org/wiki/List_of_ISO_639-1_codes for those codes.
 # As an example "python parse_wikidump.py de" will convert the German language version, which is of course for every German speaker/reader.
-# This script will always write a GPX file and can optionally write a CSV and/or OSM file.
 
 # Note: do not attempt some "buffered" writes to memory and then once every xyz lines to file.
 # That is much slower than simple write line by line
@@ -42,7 +41,7 @@ else:
 
 
 ######################### Some global settings and Constants ####################
-SCRIPT_VERSION = "0.1"
+SCRIPT_VERSION = "0.3"
 # Set maximal characters for the text
 MAX_CHARACTERS = 600
 # What to generate
@@ -61,9 +60,6 @@ GENERATE_SQL = "NO" # YES or NO
 GZIPPED_SQL = "YES" # YES or NO
 Table_Fields = "(TITLE TEXT, LATITUDE FLOAT, LONGITUDE FLOAT, COUNTRY TEXT, REGION TEXT, CITY TEXT, REMARKS TEXT, CONTENT TEXT)"
 
-# Writing the data to the sqlite database is preferred over ONLY writing to csv, even though that might be a lot faster.
-# The csv output can contain (many) duplicates. We don't want that. In our database we can easily remove duplicates and then write 
-# a csv from the database. 
 CREATE_SQLITE = "NO" # YES or NO
 SQLITE_DATABASE_PATH = '/opt/wikiscripts/sqlite/'  # This needs to be a full qualified path ending with a /
 		
