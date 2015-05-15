@@ -355,6 +355,7 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 				if poitype != "" and poitype != None:
 					remarks += ' ; Type: '+poitype
 					# if the poi type is a city, the title is the city name. We can then use that one
+					# Note that this is not always correct, but that means it is incorrectly tagged in wikipedia
 					if poitype == "city" or poitype == "City":
 						City = title_string
 				Country = ""
