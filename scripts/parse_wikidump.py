@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# version 0.2, 2015-04-28, Harry van der Wolf
+# version 0.3, 2015-05-15, Harry van der Wolf
 # This file must be used on a compressed xml.bz file
 # Usage: python parse_wikidump.py <iso-639-1 language code>
 # example: python parse_wikidump.py en
@@ -30,9 +30,11 @@ import os, sys, bz2, gzip, csv, re, time, datetime, sqlite3, logging
 import wikifunctions
 # First check on version
 if sys.version_info<(3,0,0):
-	from urllib import unquote
-	reload(sys)  
-	sys.setdefaultencoding('utf8')
+#	from urllib import unquote
+#	reload(sys)  
+#	sys.setdefaultencoding('utf8')
+	print('\n\nThis is a Python version 3.x.y script. It will not work with Python version 2\n\n')
+	sys.exit()
 else:
 	from urllib.parse import unquote
 
@@ -49,14 +51,14 @@ GPX_HEADER = '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.0" creator
 # Write a CSV
 GENERATE_CSV = "YES" # YES or NO
 GZIPPED_CVS = "NO" # YES or NO
-CSV_HEADER = ['NAME','LATITUDE','LONGITUDE','REMARKS','CONTENT']
+CSV_HEADER = ['NAME','LATITUDE','LONGITUDE','COUNTRY','REGION','REMARKS','CONTENT']
 
 GENERATE_OSM = "NO" # YES or NO
 OSM_HEADER = "<?xml version='1.0' encoding='UTF-8'?>\n<osm version='0.5' generator='dump_parse_wiki-" + SCRIPT_VERSION + ">\n"
 
 GENERATE_SQL = "NO" # YES or NO
 GZIPPED_SQL = "YES" # YES or NO
-Table_Fields = "(TITLE TEXT, LATITUDE FLOAT, LONGITUDE FLOAT, REMARKS TEXT, CONTENT TEXT)"
+Table_Fields = "(TITLE TEXT, LATITUDE FLOAT, LONGITUDE FLOAT, COUNTRY TEXT, REGION TEXT, REMARKS TEXT, CONTENT TEXT)"
 
 # Writing the data to the sqlite database is preferred over ONLY writing to csv, even though that might be a lot faster.
 # The csv output can contain (many) duplicates. We don't want that. In our database we can easily remove duplicates and then write 
@@ -260,13 +262,13 @@ if GENERATE_OSM == "YES":
 # Generate SQL
 if GENERATE_SQL == "YES":
 	if GZIPPED_SQL == "YES":
-		write_to_sql_file = language_code + wiki_type + '.sql.gz'
+		write_to_sql_file = '../output/' + language_code + wiki_type + '.sql.gz'
 		sql_file = gzip.open(write_to_sql_file, 'wb')
 	else:
-		write_to_sql_file = language_code + wiki_type + '.sql'
+		write_to_sql_file = '../output/' + language_code + wiki_type + '.sql'
 		sql_file = open(write_to_sql_file, 'wb')
-	sql_file.write('drop table if exists ' + language_code + wiki_type + ';\n')
-	sql_file.write('create table ' + language_code + wiki_type + ' ' + Table_Fields + ';\n\n')
+	sql_file.write(bytes('drop table if exists ' + language_code + wiki_type + ';\n', 'UTF-8'))
+	sql_file.write(bytes('create table ' + language_code + wiki_type + ' ' + Table_Fields + ';\n\n', 'UTF-8'))
 	print('parse_wikidump.py: writing to SQL file: '+ write_to_sql_file)
 	logging.info('parse_wikidump.py: writing to SQL file: '+ write_to_sql_file+'\n')
 # Directly connect to sqlite database
@@ -309,12 +311,15 @@ if CREATE_SQLITE == "YES":
 
 # Start reading from our wikipedia xml.bz2 file	
 with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
+	# Initialize some variables so that we don't get incorrect values when they stay empty
 	raw_page_string = ""
 	text_string = ""
 	web_string = ""
 	pagecounter = 0
 	totpagecounter = 0
 	extlinkdata = []
+	Country = ""
+	Region = ""
 	# We need to read line by line as we have massive files, sometimes multiple GBs
 	for line in single_wikifile:
 		if sys.version_info<(3,0,0):
@@ -364,7 +369,7 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 				longitude = extlinkdata[2]
 				articlelang = extlinkdata[3]
 				poitype = extlinkdata[4]
-				region = extlinkdata[5]
+				country_region = extlinkdata[5]
 				if web_string != "":
 					web_string = ARTICLE_URL + web_string
 				text_string = wikifunctions.text_only(text_string)
@@ -381,8 +386,17 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 				#	remarks += ' ; '+web_string
 				if poitype != "" and poitype != None:
 					remarks += ' ; Type: '+poitype
-				if region != "" and region != None:
-					remarks += ' ; Country_Region: '+region
+				Country = ""
+				Region = ""
+				if country_region != "" and country_region != None:
+					remarks += ' ; Country_Region: '+ country_region
+					if len(country_region) >= 4:
+						Country = country_region[:2]
+						Region = country_region[3:]
+					elif len(country_region) == 2:
+						Country = country_region[:2]
+						Region = ""
+					#print('country_region: ' + country_region + ' Country: ' + Country + ' Region: ' + Region)
 				remarks += ')'
 				# Get rid of the percent encoded strings
 				title_string = unquote(title_string)
@@ -393,19 +407,25 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 					gpx_file.write('  <desc>' + remarks +' ' + text_string + '</desc>\n')
 					gpx_file.write('</wpt>\n')
 				if GENERATE_CSV == "YES":
-					csv_file.writerow([title_string, latitude, longitude, remarks, text_string])
+					csv_file.writerow([title_string, latitude, longitude, Country, Region, remarks, text_string])
 				if GENERATE_OSM == "YES":
 					node_counter += 1
 					osm_file.write("<node id='" + str(node_counter) + "1' visible='true' lat='" + str(latitude) + "' lon='" + str(longitude) + "'>\n")
 					osm_file.write("  <tag k='tourism' v='user'/>\n")
 					osm_file.write("  <tag k='name' v='" + title_string + "'/>\n")
+					if Country != "":
+						osm_file.write("  <tag k='addr:country' v='" + Country + "'/>\n")
+					if Region != "" and Country != "US":
+						osm_file.write("  <tag k='province' v='" + Region + "'/>\n")
+					elif  Region != "":
+						osm_file.write("  <tag k='state' v='" + Region + "'/>\n")
 					#if str(web_string) != "":
 					#	osm_file.write("  <tag k='website' v='" + str(web_string) + "'/>\n")
 					osm_file.write("  <tag k='note' v='" + remarks + ' ' + text_string + "'/>\n</node>\n")
 				if GENERATE_SQL == "YES":
-					sql_file.write('insert into ' + language_code + wiki_type + ' (TITLE, LATITUDE, LONGITUDE, REMARKS, CONTENT) values ("' + title_string + '","' + str(latitude) + '","' + str(longitude) + '","' + remarks + '","' + text_string + '");\n')
+					sql_file.write(bytes('insert into ' + language_code + wiki_type + ' (TITLE, LATITUDE, LONGITUDE, COUNTRY, REGION, REMARKS, CONTENT) values ("' + title_string + '","' + str(latitude) + '","' + str(longitude) + '","' + Country + '","' + Region  + '","' + remarks + '","' + text_string + '");\n', 'UTF-8'))
 				if CREATE_SQLITE == "YES":
-					cursor.execute('insert into ' + language_code + wiki_type + ' (TITLE, LATITUDE, LONGITUDE, REMARKS, CONTENT) values ("' + title_string + '","' + str(latitude) + '","' + str(longitude) + '","' + remarks + '","' + text_string + '");')
+					cursor.execute('insert into ' + language_code + wiki_type + ' (TITLE, LATITUDE, LONGITUDE, COUNTRY, REGION, REMARKS, CONTENT) values ("' + title_string + '","' + str(latitude) + '","' + str(longitude) + '","' + Country + '","' + Region  + '","' + remarks + '","' + text_string + '");')
 					# For testing we want immediate commits
 					#wikidb.commit()
 				pagecounter += 1
@@ -432,7 +452,7 @@ if GENERATE_CSV == "YES" and GZIPPED_CVS == "YES":
 if GENERATE_OSM == "YES":
 	osm_file.close()
 if GENERATE_SQL == "YES":
-	sql_file.write('\n\ncreate index ' + language_code + 'TITLE on ' + language_code + wiki_type + '(TITLE);\n\n')
+	sql_file.write(bytes('\n\ncreate index ' + language_code + 'TITLE on ' + language_code + wiki_type + '(TITLE);\n\n', 'UTF-8'))
 	sql_file.close()
 if CREATE_SQLITE == "YES":
 	cursor.execute('drop table '+language_code + '_externallinks')
