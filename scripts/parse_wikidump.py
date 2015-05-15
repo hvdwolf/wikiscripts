@@ -52,14 +52,14 @@ GPX_HEADER = '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.0" creator
 # Write a CSV
 GENERATE_CSV = "YES" # YES or NO
 GZIPPED_CVS = "NO" # YES or NO
-CSV_HEADER = ['NAME','LATITUDE','LONGITUDE','COUNTRY','REGION','REMARKS','CONTENT']
+CSV_HEADER = ['NAME','LATITUDE','LONGITUDE','COUNTRY','REGION','CITY','REMARKS','CONTENT']
 
 GENERATE_OSM = "NO" # YES or NO
 OSM_HEADER = "<?xml version='1.0' encoding='UTF-8'?>\n<osm version='0.5' generator='dump_parse_wiki-" + SCRIPT_VERSION + ">\n"
 
 GENERATE_SQL = "NO" # YES or NO
 GZIPPED_SQL = "YES" # YES or NO
-Table_Fields = "(TITLE TEXT, LATITUDE FLOAT, LONGITUDE FLOAT, COUNTRY TEXT, REGION TEXT, REMARKS TEXT, CONTENT TEXT)"
+Table_Fields = "(TITLE TEXT, LATITUDE FLOAT, LONGITUDE FLOAT, COUNTRY TEXT, REGION TEXT, CITY TEXT, REMARKS TEXT, CONTENT TEXT)"
 
 # Writing the data to the sqlite database is preferred over ONLY writing to csv, even though that might be a lot faster.
 # The csv output can contain (many) duplicates. We don't want that. In our database we can easily remove duplicates and then write 
@@ -351,8 +351,12 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 				#temporarily remove web_string. It contains all kind of links. I need to improve on this before using it
 				#if web_string != "":
 				#	remarks += ' ; '+web_string
+				City = ""
 				if poitype != "" and poitype != None:
 					remarks += ' ; Type: '+poitype
+					# if the poi type is a city, the title is the city name. We can then use that one
+					if poitype == "city" or poitype == "City":
+						City = title_string
 				Country = ""
 				Region = ""
 				if country_region != "" and country_region != None:
@@ -364,6 +368,9 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 						Country = country_region[:2]
 						Region = ""
 					#print('country_region: ' + country_region + ' Country: ' + Country + ' Region: ' + Region)
+				else:	# Country_region is obviously empty
+					if poitype == "country" or poitype == "Country":
+						Country = poitype  # This will not be the 2-digit iso code, but at least we have a work-around
 				remarks += ')'
 				# Get rid of the percent encoded strings
 				title_string = unquote(title_string)
@@ -374,7 +381,7 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 					gpx_file.write('  <desc>' + remarks +' ' + text_string + '</desc>\n')
 					gpx_file.write('</wpt>\n')
 				if GENERATE_CSV == "YES":
-					csv_file.writerow([title_string, latitude, longitude, Country, Region, remarks, text_string])
+					csv_file.writerow([title_string, latitude, longitude, Country, Region, City, remarks, text_string])
 				if GENERATE_OSM == "YES":
 					node_counter += 1
 					osm_file.write("<node id='" + str(node_counter) + "1' visible='true' lat='" + str(latitude) + "' lon='" + str(longitude) + "'>\n")
@@ -383,16 +390,18 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 					if Country != "":
 						osm_file.write("  <tag k='addr:country' v='" + Country + "'/>\n")
 					if Region != "" and Country != "US":
-						osm_file.write("  <tag k='province' v='" + Region + "'/>\n")
+						osm_file.write("  <tag k='addr:province' v='" + Region + "'/>\n")
 					elif  Region != "":
-						osm_file.write("  <tag k='state' v='" + Region + "'/>\n")
+						osm_file.write("  <tag k='addr:state' v='" + Region + "'/>\n")
+					if City != "":
+						osm_file.write("  <tag k='addr:city' v='" + City + "'/>\n")					
 					#if str(web_string) != "":
 					#	osm_file.write("  <tag k='website' v='" + str(web_string) + "'/>\n")
 					osm_file.write("  <tag k='note' v='" + remarks + ' ' + text_string + "'/>\n</node>\n")
 				if GENERATE_SQL == "YES":
-					sql_file.write(bytes('insert into ' + language_code + wiki_type + ' (TITLE, LATITUDE, LONGITUDE, COUNTRY, REGION, REMARKS, CONTENT) values ("' + title_string + '","' + str(latitude) + '","' + str(longitude) + '","' + Country + '","' + Region  + '","' + remarks + '","' + text_string + '");\n', 'UTF-8'))
+					sql_file.write(bytes('insert into ' + language_code + wiki_type + ' (TITLE, LATITUDE, LONGITUDE, COUNTRY, REGION, CITY, REMARKS, CONTENT) values ("' + title_string + '","' + str(latitude) + '","' + str(longitude) + '","' + Country + '","' + Region + '","' + City  + '","' + remarks + '","' + text_string + '");\n', 'UTF-8'))
 				if CREATE_SQLITE == "YES":
-					cursor.execute('insert into ' + language_code + wiki_type + ' (TITLE, LATITUDE, LONGITUDE, COUNTRY, REGION, REMARKS, CONTENT) values ("' + title_string + '","' + str(latitude) + '","' + str(longitude) + '","' + Country + '","' + Region  + '","' + remarks + '","' + text_string + '");')
+					cursor.execute('insert into ' + language_code + wiki_type + ' (TITLE, LATITUDE, LONGITUDE, COUNTRY, REGION, CITY, REMARKS, CONTENT) values ("' + title_string + '","' + str(latitude) + '","' + str(longitude) + '","' + Country + '","' + Region + '","' + City  + '","' + remarks + '","' + text_string + '");')
 					# For testing we want immediate commits
 					#wikidb.commit()
 				pagecounter += 1
