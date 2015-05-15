@@ -27,7 +27,8 @@
 
 
 import os, sys, bz2, gzip, csv, re, time, datetime, sqlite3, logging
-import wikifunctions
+import wikifunctions, language_specifics
+
 # First check on version
 if sys.version_info<(3,0,0):
 #	from urllib import unquote
@@ -65,40 +66,6 @@ Table_Fields = "(TITLE TEXT, LATITUDE FLOAT, LONGITUDE FLOAT, COUNTRY TEXT, REGI
 # a csv from the database. 
 CREATE_SQLITE = "NO" # YES or NO
 SQLITE_DATABASE_PATH = '/opt/wikiscripts/sqlite/'  # This needs to be a full qualified path ending with a /
-
-# English is our default code so we initiate everything as English
-LANGUAGE_CODE = 'en'
-ARTICLE_URL = "Article url: "
-WIKI_PAGE_URL = "Wikipedia: "
-# In the function below we set some language specific comments. This needs to be made a separate include file
-# so people can easily add their own language statement
-def language_specifics(lang_code):
-	global LANGUAGE_CODE
-	global ARTICLE_URL
-	global WIKI_PAGE_URL
-	WIKI_PAGE_URL = "Wikipedia: "
-	# Adapt out fail safe english defaults to the correct ones
-	if lang_code == "nl":
-		LANGUAGE_CODE = 'nl'
-		ARTICLE_URL = "Artikel url: "
-	elif lang_code == "de":
-		LANGUAGE_CODE = 'de'
-		ARTICLE_URL = "Artikel url: "
-	elif lang_code == "fr":
-		LANGUAGE_CODE = 'fr'
-		ARTICLE_URL = "URL de l'article: "
-	elif lang_code == "no":
-		LANGUAGE_CODE = 'no'
-		ARTICLE_URL = "artikkelen url: "
-	elif lang_code == "cs":
-		LANGUAGE_CODE = 'cs'
-		ARTICLE_URL = "článek url: "
-	elif lang_code == "pl":
-		LANGUAGE_CODE = 'pl'
-		ARTICLE_URL = "artykuł url: "
-	else:
-		LANGUAGE_CODE = 'en'
-		ARTICLE_URL = "Article url: "
 		
 		
 # Below this you should not have to set or change anything
@@ -218,7 +185,7 @@ if not os.path.exists(wikipedia_file):
 	sys.exit()
 
 # Set some language specific settings (global variables)
-language_specifics(language_code)
+LANGUAGE_CODE, ARTICLE_URL, WIKI_PAGE_URL = language_specifics.language_specifics(language_code)
 # Get the start time
 start_time = datetime.datetime.now().replace(microsecond=0)
 # heartbeat: check if script is not stuck
@@ -364,7 +331,7 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 				#title_string = extlinkdata[0].replace("    <title>","").replace("</title>","")
 				title_string = extlinkdata[0]
 				print('Matching ' + language_code + ' title: '+title_string)
-				wikipediaurl = WIKI_PAGE_URL + 'http://' + language_code + '.wikipedia.org/wiki/' + title_string.replace(" ","_")
+				wikipediaurl = WIKI_PAGE_URL + ' http://' + language_code + '.wikipedia.org/wiki/' + title_string.replace(" ","_")
 				latitude = extlinkdata[1]
 				longitude = extlinkdata[2]
 				articlelang = extlinkdata[3]
