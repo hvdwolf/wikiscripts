@@ -364,7 +364,7 @@ with bz2.BZ2File(wikipedia_file, 'r') as single_wikifile:
 				#title_string = extlinkdata[0].replace("    <title>","").replace("</title>","")
 				title_string = extlinkdata[0]
 				print('Matching ' + language_code + ' title: '+title_string)
-				wikipediaurl = WIKI_PAGE_URL + 'http://' + LANGUAGE_CODE + '.wikipedia.org/wiki/' + title_string.replace(" ","_")
+				wikipediaurl = WIKI_PAGE_URL + 'http://' + language_code + '.wikipedia.org/wiki/' + title_string.replace(" ","_")
 				latitude = extlinkdata[1]
 				longitude = extlinkdata[2]
 				articlelang = extlinkdata[3]
